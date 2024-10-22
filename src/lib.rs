@@ -8,6 +8,7 @@ use pretty::*;
 use regex::Regex;
 use std::collections::HashSet;
 use tracing::{debug, enabled, error, info, Level};
+use std::collections::HashMap;
 
 #[derive(Parser)]
 #[grammar = "verus.pest"]
@@ -1609,17 +1610,18 @@ fn parse_and_format(s: &str) -> miette::Result<String> {
         .next()
         .expect("There will be exactly one `file` rule matched in a valid parsed file")
         .into_inner();
-    let mut visitor = visitor::VerusVisitor::new();
-    visitor.visit_all(parsed_file.clone());
-    let reconstructed: &str = visitor.after();
-
+    let mut visit_dat = visitor::CoreDatum {
+        program: "".to_string(),
+	fn_map: HashMap::new(),
+    };
+    visitor::CoreVerusVisitor::visit_all(&mut visit_dat, parsed_file.clone());
+    let reconstructed: &str = visit_dat.program.as_str();
 
     let reparsed_file = VerusParser::parse(Rule::file, reconstructed)
         .map_err(ParseAndFormatError::from)?
         .next()
         .expect("There will be exactly one `file` rule matched in a valid parsed file")
         .into_inner();
-
 
     let mut formatted_output = String::new();
 
