@@ -1,3 +1,41 @@
+# Verusfmt Additions
+
+
+[Pull Request](https://github.com/Flytre/verusfmt/pull/1/files)
+
+## High Level Overview
+
+We hijack the code to add our own custom handler that modifies the source code before formatting. This is what the program flow looks like:
+
+1. Read in the specified input file into a parse tree using a verus grammar file and PEST (this is done by verusfmt)
+
+2. Recurse through the parse tree. By default, use this structure to build out a program string that is functionally equivalent to the program (sans some formatting and extraneous characters): this is essentially building a copy of the program as a string.
+
+For example, given the following structure: ( equation("a + b"), components: [variable("a"), operator("+"), variable("b")] ), we can reconstruct this by having equation print a space separated list of its components, and each variable and operator print just itself.
+
+3. During step #2 stage, we can add hacks that "modify" the program by printing out extra characters to the string or not printing some tokens. For example, if we recur through equation twice, we now duplicate it in the output string. We could skip equation to not include it in the output string.
+
+4. We re-parse this modified string, representing the modified program, into a new parse tree.
+
+5. Verusfmt formats this new parse tree into a pretty formatted string.
+
+6. We save this string to <file\_input>\_formatted.rs
+
+## Implementation Details
+
+The hijack is done in two places:
+
+1. lib.rs, which creates the visitor responsible for step 2-3 and reparses the resultant string
+
+2. main.rs, which handles step 6: saving the modified file
+
+
+visitor.rs is where the core logic happens. This creates a parse tree visitor that can recur through the parse tree and perform high level manipulations on its data (i.e., duplicating is\_prime into is\_prime_3).
+
+In our example, we have a boolean is\_clone. This is set to true when we are visiting the duplicated is\_prime\_3. When we see an identifier and is\_clone is set to true, we check if the identifier is 'candidate' and replace it with '3' in the output if so.
+
+We check if a function is the is_\prime function by checking when we visit a function, if it has a direct descendent component called name with value is\_prime
+
 # Verusfmt
 
 An opinionated formatter for [Verus] code.
