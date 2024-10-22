@@ -1,181 +1,226 @@
-use crate::ParseAndFormatError;
 use crate::Rule;
-use crate::VerusParser;
-use pest::{iterators::Pair, iterators::Pairs, Parser};
-use pest_derive::Parser;
+use pest::iterators::{Pair, Pairs};
 use std::collections::HashMap;
 
-pub struct VerusVisitor {
-    program: String,
-    handlers: HashMap<String, fn(&mut VerusVisitor, Pair<Rule>)>,
-    in_clone: bool,
+// Define a trait to ensure that the data type T has a `program` field
+pub trait HasProgram {
+    fn program(&self) -> &String;
+    fn program_mut(&mut self) -> &mut String;
 }
 
-impl VerusVisitor {
+trait HandlerInterface<T: HasProgram> {
+    fn get_handler(&self, rule: &str) -> Option<fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>)>;
+}
+
+pub struct HandlerMap<T: HasProgram> {
+    handlers: HashMap<&'static str, fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>)>,
+}
+
+impl<T: HasProgram> HandlerMap<T> {
+    // Initialize a new handler map
     pub fn new() -> Self {
-        let mut handlers: HashMap<String, for<'a, 'b> fn(&'a mut VerusVisitor, Pair<'b, Rule>)> =
+        let mut handlers: HashMap<&'static str, fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>)> =
             HashMap::new();
+
+        // Insert handlers into the map
+        handlers.insert("verus_macro_use", VerusVisitor::visit_verus_macro_use);
+        handlers.insert("param_list", VerusVisitor::visit_param_list);
+        handlers.insert("fn_block_expr", VerusVisitor::visit_fn_block_expr);
+        handlers.insert("closure_param_list", VerusVisitor::visit_closure_param_list);
         handlers.insert(
-            "verus_macro_use".to_string(),
-            VerusVisitor::visit_verus_macro_use,
-        );
-        handlers.insert("param_list".to_string(), VerusVisitor::visit_param_list);
-        handlers.insert(
-            "fn_block_expr".to_string(),
-            VerusVisitor::visit_fn_block_expr,
-        );
-        handlers.insert(
-            "closure_param_list".to_string(),
-            VerusVisitor::visit_closure_param_list,
-        );
-        handlers.insert(
-            "comma_delimited_exprs".to_string(),
+            "comma_delimited_exprs",
             VerusVisitor::visit_comma_delimited_exprs,
         );
-        handlers.insert("fn".to_string(), VerusVisitor::visit_fn);
-        handlers.insert("arg_list".to_string(), VerusVisitor::visit_arg_list);
-        handlers.insert("COMMENT".to_string(), VerusVisitor::visit_comment);
-	handlers.insert("identifier".to_string(), VerusVisitor::visit_identifier);
-        VerusVisitor {
-            program: "".to_string(),
-            handlers,
-            in_clone: false,
-        }
+        handlers.insert("arg_list", VerusVisitor::visit_arg_list);
+        handlers.insert("COMMENT", VerusVisitor::visit_comment);
+
+        Self { handlers }
     }
 
-    pub fn visit(&mut self, pair: Pair<Rule>) {
-        println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
+    fn insert(
+        &mut self,
+        key: &'static str,
+        handler: fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>),
+    ) {
+        self.handlers.insert(key, handler);
+    }
+}
+
+impl<T: HasProgram> HandlerInterface<T> for HandlerMap<T> {
+    fn get_handler(&self, rule: &str) -> Option<fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>)> {
+        self.handlers.get(rule).copied() // return the function pointer
+    }
+}
+
+pub struct VerusVisitor;
+
+impl VerusVisitor {
+    fn visit<T: HasProgram>(datum: &mut T, pair: Pair<Rule>, handlers: &dyn HandlerInterface<T>) {
+       // println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
         let rule_name = format!("{:?}", pair.as_rule());
-        if let Some(handler) = self.handlers.get(&rule_name) {
-            handler(self, pair);
+        if let Some(handler) = handlers.get_handler(&rule_name) {
+            handler(datum, pair, handlers);
         } else {
-            self.default_visit(pair);
+            VerusVisitor::default_visit(datum, pair, handlers);
         }
     }
 
-    pub fn default_visit(&mut self, pair: Pair<Rule>) {
+    fn default_visit<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
         let inner_pairs = pair.clone().into_inner();
         if inner_pairs.clone().count() == 0 {
-            self.program += pair.as_str();
-            self.program += " ";
+            datum.program_mut().push_str(&format!("{} ", pair.as_str()));
         } else {
-            self.visit_all(inner_pairs);
+            VerusVisitor::visit_all(datum, inner_pairs, handlers);
         }
     }
 
-    pub fn visit_verus_macro_use(&mut self, pair: Pair<Rule>) {
-        self.program += "verus!{\n";
-        self.visit_all(pair.into_inner());
-        self.program += "}\n";
+    fn visit_verus_macro_use<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("verus!{\n");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("}\n");
     }
 
-    pub fn visit_param_list(&mut self, pair: Pair<Rule>) {
-        self.program += "(";
+    fn visit_param_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        _handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push('(');
         let mut first = true;
         for inner_pair in pair.into_inner() {
             if !first {
-                self.program += ", ";
+                datum.program_mut().push_str(", ");
             }
-            self.program += inner_pair.as_str();
+            datum.program_mut().push_str(inner_pair.as_str());
             first = false;
         }
-        self.program += ")";
+        datum.program_mut().push(')');
     }
 
-    pub fn visit_fn(&mut self, pair: Pair<Rule>) {
+    fn visit_fn_block_expr<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("\n {");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("\n } \n");
+    }
+
+    fn visit_closure_param_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        _handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push('|');
+        let mut first = true;
+        for inner_pair in pair.into_inner() {
+            if !first {
+                datum.program_mut().push_str(", ");
+            }
+            datum.program_mut().push_str(inner_pair.as_str());
+            first = false;
+        }
+        datum.program_mut().push('|');
+    }
+
+    fn visit_comma_delimited_exprs<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }
+    }
+
+    fn visit_arg_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push('(');
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push(')');
+    }
+
+    fn visit_comment<T: HasProgram>(
+        _datum: &mut T,
+        _pair: Pair<Rule>,
+        _handlers: &dyn HandlerInterface<T>,
+    ) {
+        // Do nothing for comments
+    }
+
+    fn visit_all<T: HasProgram>(
+        datum: &mut T,
+        pairs: Pairs<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        for pair in pairs {
+            VerusVisitor::visit(datum, pair, handlers);
+        }
+    }
+}
+#[derive(Clone, Debug)]
+pub struct CoreDatum {
+    pub program: String,
+    pub fn_map:  HashMap<String, String> //assume names are unique for now
+}
+
+// Implement HasProgram for CoreDatum
+impl HasProgram for CoreDatum {
+    fn program(&self) -> &String {
+        &self.program
+    }
+
+    fn program_mut(&mut self) -> &mut String {
+        &mut self.program
+    }
+}
+pub struct CoreVerusVisitor {}
+
+impl CoreVerusVisitor {
+    fn create_combined_handler_map() -> HandlerMap<CoreDatum> {
+        let mut handlers = HandlerMap::new();
+
+        handlers.insert("fn", CoreVerusVisitor::visit_function);
+
+	handlers
+    }
+
+    pub fn visit_all(datum: &mut CoreDatum, pairs: Pairs<Rule>) {
+        let handler_map = CoreVerusVisitor::create_combined_handler_map();
+        VerusVisitor::visit_all(
+            datum,
+            pairs,
+            &handler_map as &dyn HandlerInterface<CoreDatum>,
+        );
+    }
+
+    /// Handler for the "fn" rule. This is a Core-specific handler.
+    fn visit_function(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+        println!("Visited a function");
         let name = pair
             .clone()
             .into_inner()
             .find(|p| p.as_rule() == Rule::name)
             .expect("Function must have a name")
             .as_str();
-
-        if name == "is_prime" {
-            self.in_clone = true;
-            for fn_comp in pair.clone().into_inner() {
-                let rule_name = format!("{:?}", fn_comp.as_rule());
-                match rule_name.as_str() {
-                    "name" => {
-                        let new_name = VerusParser::parse(Rule::name, "is_prime_3")
-                            .map_err(ParseAndFormatError::from)
-                            .expect("")
-                            .next()
-                            .unwrap();
-                        self.visit(new_name);
-                    }
-                    "param_list" => {
-                        let empty_args = VerusParser::parse(Rule::param_list, "()")
-                            .expect("")
-                            .next()
-                            .unwrap();
-                        self.visit(empty_args);
-                    }
-                    _ => {
-                        self.visit(fn_comp);
-                    }
-                }
-            }
-            self.in_clone = false;
-        }
-        self.visit_all(pair.into_inner());
-    }
-
-    pub fn visit_fn_block_expr(&mut self, pair: Pair<Rule>) {
-        self.program += "\n {";
-        self.visit_all(pair.into_inner());
-        self.program += "\n } \n";
-    }
-
-    pub fn visit_closure_param_list(&mut self, pair: Pair<Rule>) {
-        self.program += "|";
-        let mut first = true;
-        for inner_pair in pair.into_inner() {
-            if !first {
-                self.program += ", ";
-            }
-            self.program += inner_pair.as_str();
-            first = false;
-        }
-        self.program += "|";
-    }
-
-    pub fn visit_comma_delimited_exprs(&mut self, pair: Pair<Rule>) {
-        for inner_pair in pair.into_inner() {
-            self.visit(inner_pair);
-            self.program += ", ";
-        }
-    }
-
-    pub fn visit_arg_list(&mut self, pair: Pair<Rule>) {
-        self.program += "(";
-        self.visit_all(pair.into_inner());
-        self.program += ")";
-    }
-
-    pub fn visit_all(&mut self, pairs: Pairs<Rule>) {
-        for pair in pairs {
-            self.visit(pair);
-        }
-    }
-
-    pub fn visit_comment(&mut self, _pair: Pair<Rule>) {
-        //remove
-    }
-
-    pub fn after(&self) -> &str {
-        &self.program
-    }
-
-    pub fn visit_identifier(&mut self, pair: Pair<Rule>) {
-        if self.in_clone && pair.as_str() == "candidate" {
-            let new_val = VerusParser::parse(Rule::int_number, "3")
-                .map_err(ParseAndFormatError::from)
-                .expect("")
-                .next()
-                .unwrap();
-	    self.visit(new_val);
-        } else {
-            self.default_visit(pair);
-        }
+	datum.fn_map.insert(name.to_string(), pair.as_str().to_string());
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
     }
 }
