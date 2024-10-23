@@ -2,7 +2,6 @@ use crate::Rule;
 use pest::iterators::{Pair, Pairs};
 use std::collections::HashMap;
 
-// Define a trait to ensure that the data type T has a `program` field
 pub trait HasProgram {
     fn program(&self) -> &String;
     fn program_mut(&mut self) -> &mut String;
@@ -56,7 +55,7 @@ pub struct VerusVisitor;
 
 impl VerusVisitor {
     fn visit<T: HasProgram>(datum: &mut T, pair: Pair<Rule>, handlers: &dyn HandlerInterface<T>) {
-       // println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
+        //println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
         let rule_name = format!("{:?}", pair.as_rule());
         if let Some(handler) = handlers.get_handler(&rule_name) {
             handler(datum, pair, handlers);
@@ -174,7 +173,8 @@ impl VerusVisitor {
 #[derive(Clone, Debug)]
 pub struct CoreDatum {
     pub program: String,
-    pub fn_map:  HashMap<String, String> //assume names are unique for now
+    pub fn_map: HashMap<String, String>, //assume names are unique for now
+    pub fn_calls: HashMap<String, Vec<Vec<String>>>,
 }
 
 // Implement HasProgram for CoreDatum
@@ -194,8 +194,9 @@ impl CoreVerusVisitor {
         let mut handlers = HandlerMap::new();
 
         handlers.insert("fn", CoreVerusVisitor::visit_function);
-
-	handlers
+        handlers.insert("expr", CoreVerusVisitor::visit_expr);
+        handlers.insert("verus_macro_use", CoreVerusVisitor::visit_verus_macro_use);
+        handlers
     }
 
     pub fn visit_all(datum: &mut CoreDatum, pairs: Pairs<Rule>) {
@@ -213,14 +214,76 @@ impl CoreVerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        println!("Visited a function");
         let name = pair
             .clone()
             .into_inner()
             .find(|p| p.as_rule() == Rule::name)
             .expect("Function must have a name")
             .as_str();
-	datum.fn_map.insert(name.to_string(), pair.as_str().to_string());
+        println!("Stored the function body for {}", name);
+        datum
+            .fn_map
+            .insert(name.to_string(), pair.as_str().to_string());
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+    }
+
+    fn visit_expr(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+        let mut inner_pairs = pair.clone().into_inner();
+
+        let mut function_name: Option<String> = None;
+        let mut arguments: Option<Vec<String>> = None;
+
+        while let Some(inner_pair) = inner_pairs.next() {
+            match inner_pair.as_rule() {
+                Rule::expr_inner => {
+                    let mut nested_pairs = inner_pair.clone().into_inner();
+                    if let Some(function_pair) = nested_pairs
+                        .clone()
+                        .find(|p| p.as_rule() == Rule::path_expr_no_generics)
+                    {
+                        function_name = Some(function_pair.as_str().to_string());
+                    }
+                }
+                Rule::arg_list => {
+                    let args: Vec<String> = inner_pair
+                        .into_inner()
+                        .map(|p| p.as_str().to_string())
+                        .collect();
+                    arguments = Some(args.clone());
+                }
+                _ => {}
+            }
+        }
+
+        if let (Some(function_name), Some(arguments)) = (function_name, arguments) {
+            println!(
+                "Function called: {} with args: {:?}",
+                function_name, arguments
+            );
+            datum
+                .fn_calls
+                .entry(function_name)
+                .or_insert_with(Vec::new)
+                .push(arguments);
+        }
+
+        VerusVisitor::default_visit(datum, pair, handlers);
+    }
+
+    fn visit_verus_macro_use(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+        VerusVisitor::visit_verus_macro_use(datum, pair, handlers);
+        println!(
+            "Functions found (fn_map keys): {:?}",
+            datum.fn_map.keys().collect::<Vec<&String>>()
+        );
+        println!("Function Calls (fn_calls): {:?}", datum.fn_calls);
     }
 }

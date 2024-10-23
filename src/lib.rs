@@ -1613,6 +1613,7 @@ fn parse_and_format(s: &str) -> miette::Result<String> {
     let mut visit_dat = visitor::CoreDatum {
         program: "".to_string(),
 	fn_map: HashMap::new(),
+	fn_calls: HashMap::new(),
     };
     visitor::CoreVerusVisitor::visit_all(&mut visit_dat, parsed_file.clone());
     let reconstructed: &str = visit_dat.program.as_str();
