@@ -7,7 +7,7 @@ pub trait HasProgram {
     fn program_mut(&mut self) -> &mut String;
 }
 
-trait HandlerInterface<T: HasProgram> {
+pub trait HandlerInterface<T: HasProgram> {
     fn get_handler(&self, rule: &str) -> Option<fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>)>;
 }
 
@@ -36,7 +36,7 @@ impl<T: HasProgram> HandlerMap<T> {
         Self { handlers }
     }
 
-    fn insert(
+    pub fn insert(
         &mut self,
         key: &'static str,
         handler: fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>),
@@ -160,7 +160,7 @@ impl VerusVisitor {
         // Do nothing for comments
     }
 
-    fn visit_all<T: HasProgram>(
+   pub fn visit_all<T: HasProgram>(
         datum: &mut T,
         pairs: Pairs<Rule>,
         handlers: &dyn HandlerInterface<T>,
@@ -170,6 +170,7 @@ impl VerusVisitor {
         }
     }
 }
+
 #[derive(Clone, Debug)]
 pub struct CoreDatum {
     pub program: String,
@@ -214,6 +215,7 @@ impl CoreVerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
+        
         let name = pair
             .clone()
             .into_inner()

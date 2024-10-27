@@ -2,9 +2,10 @@ use std::path::PathBuf;
 
 use clap::{Parser as ClapParser, ValueEnum};
 use fs_err as fs;
-use miette::{miette, IntoDiagnostic};
+use miette::{miette, IntoDiagnostic, Result}; // Ensure miette is imported
 use tracing::{error, info}; // debug, trace, warn
 use verusfmt::RustFmtConfig;
+use std::collections::HashMap;
 
 /// A collection of options that should not be relied upon existing long-term, added primarily for
 /// verusfmt developers to use.
@@ -38,21 +39,19 @@ struct Args {
     /// Update verusfmt if an update is available
     #[arg(long = "update")]
     update: bool,
+    /// List of visitor names to be used
+    #[arg(long = "visitors", value_parser, value_delimiter = ',')]
+    visitors: Vec<String>,
 }
-
 fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
     let unparsed_file = fs::read_to_string(file).into_diagnostic()?;
 
     let rustfmt_config = {
-        // Repeatedly check for ancestors of `file` until we find either `rustfmt.toml` or
-        // `.rustfmt.toml`; if we do, that becomes `rustfmt_toml`
         let rustfmt_toml = file
             .canonicalize()
             .unwrap()
             .ancestors()
             .flat_map(|dir| {
-                // Why in this particular order? That's the order in which rustfmt checks:
-                // https://github.com/rust-lang/rustfmt/blob/202fa22cee5badff77129a7bea5c90228d354ac9/src/config/mod.rs#L368-L369
                 [".rustfmt.toml", "rustfmt.toml"]
                     .into_iter()
                     .map(|n| dir.join(n))
@@ -63,17 +62,46 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         RustFmtConfig { rustfmt_toml }
     };
 
-    let formatted_output = verusfmt::run(
-        &unparsed_file,
-        verusfmt::RunOptions {
-            file_name: Some(file.to_string_lossy().into()),
+    // Run visitors sequentially
+    let mut current_output = unparsed_file.clone();
+    let mut visitor_count: HashMap<String, usize> = HashMap::new();
+
+    for visitor in &args.visitors {
+        println!("Starting Visitor = {}", visitor);
+        let count = visitor_count.entry(visitor.to_string()).or_insert(0);
+        let current_count = *count; // Get the current count for this visitor
+           // Update the count for the next iteration
+        *count += 1;
+
+        // Generate the formatted file name for the current visitor
+        let formatted_file_name = format!(
+            "{}_formatted_{}_{}.rs",
+            file.file_stem().unwrap().to_string_lossy(),
+            visitor,
+            current_count // Use the current count to make the filename unique
+        );
+    
+        // Update run_options to use the new formatted file name
+        let run_options = verusfmt::RunOptions {
+            file_name: Some(formatted_file_name.clone()), // Use formatted_file_name here
             run_rustfmt: !args.verus_only,
             rustfmt_config: rustfmt_config.clone(),
-        },
-    )?;
+        };
 
+        // Call run with the current output and the visitor name
+        let formatted_output = verusfmt::run(&current_output, run_options, visitor)?;
+        let formatted_file_path = file.with_file_name(formatted_file_name.clone());
+
+        // Write the cloned output to file
+        fs::write(formatted_file_path, formatted_output.clone()).into_diagnostic()?;
+        println!("written visitor pass to file: {}", formatted_file_name.clone());
+        // Update current_output for the next visitor
+        current_output = formatted_output; // Now this can directly use the original value
+    }
+
+    // Handle the check and idempotency commands as before
     if args.check {
-        if unparsed_file == formatted_output {
+        if unparsed_file == current_output {
             info!("✨Perfectly formatted✨");
             Ok(())
         } else {
@@ -82,7 +110,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             let diff = similar::udiff::unified_diff(
                 similar::Algorithm::Patience,
                 &unparsed_file,
-                &formatted_output,
+                &current_output,
                 3,
                 Some((
                     &file.to_string_lossy(),
@@ -92,26 +120,21 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             println!("{diff}");
             Err(miette!("invalid formatting"))
         }
-    } else if matches!(
-        args.unstable_command,
-        Some(UnstableCommand::IdempotencyTest)
-    ) {
-        let reformatted = verusfmt::run(
-            &formatted_output,
-            verusfmt::RunOptions {
-                file_name: Some(file.to_string_lossy().into()),
-                run_rustfmt: !args.verus_only,
-                rustfmt_config,
-            },
-        )?;
-        if formatted_output == reformatted {
+    } else if matches!(args.unstable_command, Some(UnstableCommand::IdempotencyTest)) {
+        let run_options = verusfmt::RunOptions {
+            file_name: Some(file.to_string_lossy().into()),
+            run_rustfmt: !args.verus_only,
+            rustfmt_config: rustfmt_config.clone(),
+        };
+        let reformatted = verusfmt::run(&current_output, run_options, "CoreVerusVisitor")?; // Or another visitor if desired
+        if current_output == reformatted {
             return Err(miette!("✨Idempotent run✨"));
         } else {
             info!("Non-idempotency found in {}", file.display());
             error!("😱Formatting found to not be idempotent😱");
             let diff = similar::udiff::unified_diff(
                 similar::Algorithm::Patience,
-                &formatted_output,
+                &current_output,
                 &reformatted,
                 3,
                 Some((
@@ -123,16 +146,11 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             return Ok(());
         }
     } else {
-        let formatted_file_name = format!(
-            "{}_formatted.rs",
-            file.file_stem().unwrap().to_string_lossy()
-        );
-        let formatted_file_path = file.with_file_name(formatted_file_name);
-        fs::write(formatted_file_path, formatted_output).into_diagnostic()?;
-
+        // Final output is already handled in the loop above
         Ok(())
     }
 }
+
 
 fn main() -> miette::Result<()> {
     let args = Args::parse();
