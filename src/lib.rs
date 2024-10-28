@@ -13,6 +13,18 @@ use tracing::{debug, enabled, error, info, Level};
 use std::collections::HashMap;
 use miette::{miette, Result}; // Importing miette and Result
 use crate::simpleV::SimpleVisitor; 
+use lazy_static::lazy_static;
+use crate::visitor::CoreDatum;
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref VISIT_DATA: Mutex<CoreDatum> = Mutex::new(CoreDatum {
+        program: "".to_string(),
+        fn_map: HashMap::new(),
+        fn_calls: HashMap::new(),
+        target_name: "".to_string(),
+    });
+}
 
 
 #[derive(Parser)]
@@ -1734,20 +1746,25 @@ impl Default for RunOptions {
     }
 }
 
-/// Run `verusfmt`
 pub fn run(s: &str, opts: RunOptions, visitor_name: &str) -> miette::Result<String> {
     let unparsed_file = s;
 
     let file_name = opts.file_name.clone().unwrap_or("<input>".into());
 
-    // Create a CoreDatum instance to hold state
-    let mut visit_dat = visitor::CoreDatum {
-        program: "".to_string(),
-        fn_map: HashMap::new(),
-        fn_calls: HashMap::new(),
-        target_name: "divides".to_string(), // Initial target name
-    };
+    // Lock the mutex to access the shared state
+    let mut visit_dat = VISIT_DATA.lock().unwrap();
 
+    visit_dat.program = "".to_string();
+    if let Some(first_fn_name) = visit_dat.fn_calls.keys().next() {
+        visit_dat.target_name = first_fn_name.clone();
+    }  
+    // Debugging statements to print the contents of visit_dat
+    // println!("Current visit_dat contents:");
+    // println!("Program: {}", visit_dat.program);
+    // println!("Function Map: {:?}", visit_dat.fn_map);
+    // println!("Function Calls: {:?}", visit_dat.fn_calls);
+    // println!("Target Name: {}", visit_dat.target_name);
+        
     // Parse and format the file using the specified visitor
     let verus_fmted = parse_and_format(unparsed_file, visitor_name, &mut visit_dat).map_err(|e| {
         e.with_source_code(miette::NamedSource::new(
@@ -1767,5 +1784,6 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str) -> miette::Result<Stri
 
     Ok(formatted_output)
 }
+
 
 
