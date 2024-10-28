@@ -1606,32 +1606,28 @@ impl miette::Diagnostic for ParseAndFormatError {
     }
 }
 
-fn parse_and_format(s: &str, visitor_name: &str) -> miette::Result<String> {
+fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitor::CoreDatum) -> miette::Result<String> {
+    // Create a context for inline comments
     let ctx = Context {
         inline_comment_lines: find_inline_comment_lines(s),
     };
+
+    // Parse the input string
     let parsed_file = VerusParser::parse(Rule::file, s)
         .map_err(ParseAndFormatError::from)?
         .next()
         .expect("There will be exactly one `file` rule matched in a valid parsed file")
         .into_inner();
 
-    let mut visit_dat = visitor::CoreDatum {
-        program: "".to_string(),
-        fn_map: HashMap::new(),
-        fn_calls: HashMap::new(),
-    };
-
-    // Match the visitor name to call the corresponding visitor
+    // Match on the visitor name to invoke the correct visitor handling logic
     match visitor_name {
         "CoreVerusVisitor" => {
-            visitor::CoreVerusVisitor::visit_all(&mut visit_dat, parsed_file.clone());
+            visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
         }
         "SimpleVisitor" => {
-            let target_name = "is_prime";
-            // Create an instance of SimpleVisitor with target_name if provided
-            let simpleV = simpleV::SimpleVisitor::new("is_prime".to_string());
-            simpleV.visit_all(&mut visit_dat, parsed_file); // Call visit_all on the instance
+            // Create an instance of SimpleVisitor with the target_name from CoreDatum
+            let simpleV = simpleV::SimpleVisitor::new(visit_dat.target_name.clone());
+            simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
     }
@@ -1652,6 +1648,7 @@ fn parse_and_format(s: &str, visitor_name: &str) -> miette::Result<String> {
         }
         let rule = pair.as_rule();
         debug!(?rule, "Processing top-level");
+
         match rule {
             Rule::non_verus | Rule::COMMENT => {
                 formatted_output += pair.as_str();
@@ -1676,6 +1673,7 @@ fn parse_and_format(s: &str, visitor_name: &str) -> miette::Result<String> {
                     let suffix_comments: Vec<_> = body_iter.collect();
                     (prefix_comments, body, suffix_comments)
                 };
+
                 formatted_output += VERUS_PREFIX;
                 for comment in &prefix_comments {
                     formatted_output += comment.as_str();
@@ -1687,6 +1685,7 @@ fn parse_and_format(s: &str, visitor_name: &str) -> miette::Result<String> {
                 if !suffix_comments.is_empty() {
                     formatted_output += "\n";
                 }
+
                 let mut first = true;
                 for comment in suffix_comments {
                     if !first {
@@ -1699,16 +1698,19 @@ fn parse_and_format(s: &str, visitor_name: &str) -> miette::Result<String> {
                 formatted_output += VERUS_SUFFIX;
             }
             Rule::EOI => {
-                // end of input; do nothing
+                // End of input; do nothing
             }
             _ => unreachable!("Unexpected rule: {:?}", rule),
         }
     }
 
+    // Perform additional formatting operations
     let fixed_output = fix_inline_comments(formatted_output);
     let fixed_output = strip_whitespace(fixed_output);
     Ok(fixed_output)
 }
+
+
 
 
 
@@ -1738,8 +1740,16 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str) -> miette::Result<Stri
 
     let file_name = opts.file_name.clone().unwrap_or("<input>".into());
 
+    // Create a CoreDatum instance to hold state
+    let mut visit_dat = visitor::CoreDatum {
+        program: "".to_string(),
+        fn_map: HashMap::new(),
+        fn_calls: HashMap::new(),
+        target_name: "divides".to_string(), // Initial target name
+    };
+
     // Parse and format the file using the specified visitor
-    let verus_fmted = parse_and_format(unparsed_file, visitor_name).map_err(|e| {
+    let verus_fmted = parse_and_format(unparsed_file, visitor_name, &mut visit_dat).map_err(|e| {
         e.with_source_code(miette::NamedSource::new(
             file_name,
             unparsed_file.to_owned(),

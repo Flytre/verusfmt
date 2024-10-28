@@ -174,8 +174,9 @@ impl VerusVisitor {
 #[derive(Clone, Debug)]
 pub struct CoreDatum {
     pub program: String,
-    pub fn_map: HashMap<String, String>, //assume names are unique for now
+    pub fn_map: HashMap<String, String>, // Assume names are unique for now
     pub fn_calls: HashMap<String, Vec<Vec<String>>>,
+    pub target_name: String,             // Add target_name 
 }
 
 // Implement HasProgram for CoreDatum
@@ -188,6 +189,12 @@ impl HasProgram for CoreDatum {
         &mut self.program
     }
 }
+impl CoreDatum {
+    pub fn get_target_name(&self) -> &String {
+        &self.target_name
+    }
+}
+
 pub struct CoreVerusVisitor {}
 
 impl CoreVerusVisitor {
