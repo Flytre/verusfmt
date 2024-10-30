@@ -6,6 +6,7 @@ use crate::{visitor::{CoreDatum, HasProgram, HandlerInterface, HandlerMap, Verus
 use std::collections::HashMap;
 use pest::prec_climber::{PrecClimber, Assoc, Operator};
 use crate::VerusParser;
+use regex::Regex;
 
 // Define a new struct for your custom visitor
 pub struct QuantifierVisitor {
@@ -19,7 +20,7 @@ impl QuantifierVisitor {
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
         let mut handlers = HandlerMap::new();
-        handlers.insert("quantifier_expr", QuantifierVisitor::visit_quantifier);
+        handlers.insert("quantifier_expr", QuantifierVisitor::visit_quantifier); // contains logic for forall and exists
         handlers
     }
 
@@ -34,68 +35,73 @@ impl QuantifierVisitor {
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
         println!("Found quantifier = {}", pair.as_str());
-    
+        // common preamble 
         let mut inner_pairs = pair.clone().into_inner();
         
         if let Some(first_pair) = inner_pairs.next() {
-            if first_pair.as_rule() == Rule::forall_str {
 
-                // Initialize variables to hold closure parameters and expr
-                let mut closure_param_list = None;
-                let mut expr = None;
-    
-                // Loop over inner elements to find `closure_param_list` and `expr`
-                for inner_pair in inner_pairs {
-                    match inner_pair.as_rule() {
-                        Rule::closure_param_list => {
-                            closure_param_list = Some(inner_pair.clone());
-                        },
-                        Rule::expr => {
-                            expr = Some(inner_pair.clone());
-                        },
+            // Initialize variables to hold closure parameters and expr
+            let mut closure_param_list = None;
+            let mut expr = None;
+
+            // Loop over inner elements to find `closure_param_list` and `expr`
+            for inner_pair in inner_pairs {
+                match inner_pair.as_rule() {
+                    Rule::closure_param_list => {
+                        closure_param_list = Some(inner_pair.clone());
+                    },
+                    Rule::expr => {
+                        expr = Some(inner_pair.clone());
+                    },
+                    _ => {}
+                }
+            }
+            // Ensure both closure_param_list and expr were found
+            if let (Some(ref closure_param_list), Some(ref expr)) = (closure_param_list, expr) {
+                // Parse the closure_param_list to find variable names and types
+                let mut param_map: HashMap<String, String> = HashMap::new(); // Holds variable name and type
+
+                // Iterate over the inner pairs of closure_param_list
+                let mut quant_params = closure_param_list.clone().into_inner();
+                while let Some(quant_param_pair) = quant_params.next(){
+                    match quant_param_pair.as_rule() {
+                        Rule::param => {
+                            // println!("paramPair = {:?} :: {:?}",quant_param_pair.as_rule(), quant_param_pair.as_str());
+                            let mut inner_param_pairs = quant_param_pair.clone().into_inner();
+                            let mut var_name = "";
+                            let mut var_type = "";
+                            while let Some(inner_param_pair) = inner_param_pairs.next(){
+                                // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
+                                match inner_param_pair.as_rule() {
+                                    Rule::pat_no_top_alt => {
+                                            var_name = quant_param_pair.clone().as_str();
+                                            // Split the string at ":"
+                                            let parts: Vec<&str> = var_name.split(':').map(|part| part.trim()).collect();
+                                            
+                                            // Ensure there are exactly two parts
+                                            if parts.len() == 2 {
+                                                let key = parts[0];
+                                                let value = parts[1];
+                                                
+                                                param_map.insert(key.to_string(),value.to_string());
+                                            } else {
+                                                println!("Variable format is incorrect.");
+                                            }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
                         _ => {}
                     }
                 }
-                // Ensure both closure_param_list and expr were found
-                if let (Some(ref closure_param_list), Some(ref expr)) = (closure_param_list, expr) {
-                    // Parse the closure_param_list to find variable names and types
-                    let mut param_map: HashMap<String, String> = HashMap::new(); // Holds variable name and type
-    
-                    // Iterate over the inner pairs of closure_param_list
-                    let mut forall_params = closure_param_list.clone().into_inner();
-                    while let Some(forall_param_pair) = forall_params.next(){
-                        match forall_param_pair.as_rule() {
-                            Rule::param => {
-                                // println!("paramPair = {:?} :: {:?}",forall_param_pair.as_rule(), forall_param_pair.as_str());
-                                let mut inner_param_pairs = forall_param_pair.clone().into_inner();
-                                let mut var_name = "";
-                                let mut var_type = "";
-                                while let Some(inner_param_pair) = inner_param_pairs.next(){
-                                    // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
-                                    match inner_param_pair.as_rule() {
-                                        Rule::pat_no_top_alt => {
-                                                var_name = forall_param_pair.clone().as_str();
-                                                // Split the string at ":"
-                                                let parts: Vec<&str> = var_name.split(':').map(|part| part.trim()).collect();
-                                                
-                                                // Ensure there are exactly two parts
-                                                if parts.len() == 2 {
-                                                    let key = parts[0];
-                                                    let value = parts[1];
-                                                    
-                                                    param_map.insert(key.to_string(),value.to_string());
-                                                } else {
-                                                    println!("Variable format is incorrect.");
-                                                }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
+                // Initialize a map for the variables in the expression
+                let mut variables: HashMap<String, usize> = HashMap::new();
+                for (key, value) in &param_map {
+                    variables.insert(key.to_string(),0);
+                }
 
+                if first_pair.as_rule() == Rule::forall_str {
                     // Split implication
                     let (lhs_opt, rhs_opt) = VerusParser::split_implication(expr.as_str());
                     if let (Some(lhsExpr), Some(rhsExpr)) = (lhs_opt, rhs_opt) {
@@ -105,11 +111,7 @@ impl QuantifierVisitor {
                         
                         let expr = lhsExpr.as_str();
 
-                        // Initialize a map for the variables in the expression
-                        let mut variables: HashMap<String, usize> = HashMap::new();
-                        for (key, value) in &param_map {
-                            variables.insert(key.to_string(),0);
-                        }
+      
                         let concrete_bound = Self::check_missing_variables_from_expr(lhsExpr.as_str(), &mut variables);
 
                         if(concrete_bound){
@@ -124,12 +126,17 @@ impl QuantifierVisitor {
 
                             let mut expressions = Vec::new();
 
-                            for combination in satisfying_values {
+                            for s_val in satisfying_values {
                                 // Iterate over the key-value pairs in each map
                                 let mut expr_with_values = rhsExpr.as_str().to_string();
-                                for (variable_name, value) in combination {
+                                for (variable_name, value) in s_val {
                                     // Replace each variable in the RHS with its value
-                                    expr_with_values = expr_with_values.replace(&variable_name, &value.to_string());
+                                    let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
+                                    let regex = Regex::new(&pattern).unwrap();
+
+                                    // expr_with_values = expr_with_values.replace(&variable_name, &value.to_string());
+                                    expr_with_values = regex.replace_all(&expr_with_values, &value.to_string()).into_owned();
+
                                 }
                                 expressions.push(expr_with_values);
                             }
@@ -142,44 +149,119 @@ impl QuantifierVisitor {
                                     datum.program_mut().push_str(&format!("&& {}", expanded_rhs_expr.as_str()));
                                 }
                             }
-
-                            
-                        }else{
-                            // upper bound of LHS is not concrete, so do nothing! 
+                                
+                        }else{ // upper bound of LHS is not concrete, so do nothing! 
                             VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
                         }
                     }
+                // end forall 
+                } else if first_pair.as_rule() == Rule::exists_str {
+                    
+                    // println!("found exists expr  {}", first_pair);
+                    // println!("expr and closure = {:?} :: {:?}",expr.as_str(), closure_param_list.as_str());
+                    let satisfying_values_exists = Self::find_satisfying_values_exists(&mut variables, datum.finite_bound);
+
+                    let mut expressions = Vec::new();
+
+                    for s_val in satisfying_values_exists {
+                        // Iterate over the key-value pairs in each map
+                        let mut expr_with_values = expr.as_str().to_string();
+                        for (variable_name, value) in s_val {
+                            // Create a regex pattern for exact match of the variable name
+                            let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
+                            let regex = Regex::new(&pattern).unwrap();
+
+                            // Replace only exact matches in the expression
+                            expr_with_values = regex.replace_all(&expr_with_values, &value.to_string()).into_owned();
+                        }
+                        expressions.push(expr_with_values);
+                    }
+
+                    let mut iter = expressions.clone().into_iter().peekable();
+                    if let Some(first_expr) = iter.next() {
+                        datum.program_mut().push_str(&format!("({})",  first_expr.as_str()));
+                        for expanded_expr in iter {
+                            datum.program_mut().push_str(&format!("|| ({})",  expanded_expr.as_str()));
+
+                        }
+                    }
+                }// end exists 
+            }
+        }
+    }
+
+// -------------------------    
+// ---- HELPER FUNCTIONS ---
+// -------------------------    
+
+    fn find_satisfying_values_exists(
+        variables: &mut HashMap<String, usize>,
+        bound: usize,
+    ) -> Vec<HashMap<String, usize>> {
+        let mut satisfying_combinations = Vec::new();
+
+        // Get the variable names
+        let variable_names: Vec<String> = variables.keys().cloned().collect();
+
+        // Generate all combinations within the range for each variable
+        let mut current_values = vec![0; variable_names.len()];
+
+        loop {
+            // Set each variable in the HashMap to its current value in the combination
+            for (i, var_name) in variable_names.iter().enumerate() {
+                variables.insert(var_name.clone(), current_values[i]);
+            }
+
+            // Add the current combination to the satisfying_combinations list
+            satisfying_combinations.push(variables.clone());
+
+            // Move to the next combination of values
+            let mut idx = 0;
+            while idx < current_values.len() {
+                if current_values[idx] < bound {
+                    current_values[idx] += 1;
+                    break;
+                } else {
+                    current_values[idx] = 0;
+                    idx += 1;
                 }
-            } // end forall 
+            }
+
+            if idx == current_values.len() {
+                break; // Exit the loop when all combinations have been generated
+            }
         }
+
+        satisfying_combinations
     }
 
-fn check_missing_variables_from_expr(expr: &str, variables: &HashMap<String, usize>) -> bool {
-    // Split the expression by whitespace
-    let parts: Vec<&str> = expr.split_whitespace().collect();
 
-    // Operators to ignore
-    let operators = ["<", "<=", ">", ">=", "==", "!=", "&&", "||"];
+    fn check_missing_variables_from_expr(expr: &str, variables: &HashMap<String, usize>) -> bool {
+        // Split the expression by whitespace
+        let parts: Vec<&str> = expr.split_whitespace().collect();
 
-    for part in parts {
-        // Skip operators and numeric literals
-        if operators.contains(&part) || part.parse::<usize>().is_ok() || part == "bound" {
-            continue;
+        // Operators to ignore
+        let operators = ["<", "<=", ">", ">=", "==", "!=", "&&", "||"];
+
+        for part in parts {
+            // Skip operators and numeric literals
+            if operators.contains(&part) || part.parse::<usize>().is_ok() || part == "bound" {
+                continue;
+            }
+
+            // Check if `part` is a variable not found in `variables`
+            if !variables.contains_key(part) {
+                // println!("Variable '{}' is in the expression but not in the variables map.", part);
+                return false; // Return false if any variable is missing
+            }
         }
 
-        // Check if `part` is a variable not found in `variables`
-        if !variables.contains_key(part) {
-            // println!("Variable '{}' is in the expression but not in the variables map.", part);
-            return false; // Return false if any variable is missing
-        }
+        true // Return true if all variables in `expr` are found in the map
     }
 
-    true // Return true if all variables in `expr` are found in the map
-}
-
-    //supports expressions like:
+    //currently supports expressions of the following form:
     // Constant < x < Bound
-    // Constant < x < y < bound
+    // Constant < x < y < Bound
     // With comparison operators {< , <= , >, >=}
     fn evalForallBounds(expr: &str, variables: &HashMap<String, usize>, bound: usize) -> bool {
         let parts: Vec<&str> = expr.split_whitespace().collect();

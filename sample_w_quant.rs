@@ -28,7 +28,7 @@ verus! {
 //assume that "candidate has been pushed-down"
 spec fn is_prime(candidate: nat) -> bool {
     &&& 1 < candidate
-    &&& forall|factor: nat| 1 < factor < 5 ==> !divides(factor, candidate)
+    &&& forall|factor: nat| 1 < factor < 4 ==> !divides(factor, candidate)
 }
 
 
@@ -46,9 +46,13 @@ fn main() {
         v.push(30);
         v.push(40);
 
-    assert(forall|i: int, j: int| 0 <= i <= j < v.len() ==> v[i] <= v[j]);
+    // assert(forall|i: int, j: int| 0 <= i <= j < v.len() ==> v[i] <= v[j]);
 
-    // assert(forall|i: int, j: int| 0 <= i <= j < 3 ==> v[i] <= v[j] <= v[k]);
+    assert(forall|i: int, j: int| 0 <= i <= j < 3 ==> v[i] <= v[j] <= v[k]);
+
+    assert(exists|i: int| 0 <= i < v.len() && k == v[i]);
+
+    assert(exists|i: int| i1 <= i <= i2 && k == v[i]);
     // assert(forall|i: int, j: int, k:int| 0 <= i <= j < k <=  3 ==> v[i] <= v[j] <= v[k]);
 
 
