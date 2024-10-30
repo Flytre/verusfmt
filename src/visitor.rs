@@ -55,7 +55,7 @@ pub struct VerusVisitor;
 
 impl VerusVisitor {
     fn visit<T: HasProgram>(datum: &mut T, pair: Pair<Rule>, handlers: &dyn HandlerInterface<T>) {
-        //println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
+        // println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
         let rule_name = format!("{:?}", pair.as_rule());
         if let Some(handler) = handlers.get_handler(&rule_name) {
             handler(datum, pair, handlers);
@@ -177,6 +177,7 @@ pub struct CoreDatum {
     pub fn_map: HashMap<String, String>, // Assume names are unique for now
     pub fn_calls: HashMap<String, Vec<Vec<String>>>,
     pub target_name: String,             // Add target_name 
+    pub finite_bound: usize,
 }
 
 // Implement HasProgram for CoreDatum

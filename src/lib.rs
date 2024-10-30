@@ -1,6 +1,7 @@
 mod rustfmt;
 mod visitor;
 mod simpleV;
+mod quantifierV;
 
 pub use crate::rustfmt::{rustfmt, RustFmtConfig};
 
@@ -23,6 +24,7 @@ lazy_static! {
         fn_map: HashMap::new(),
         fn_calls: HashMap::new(),
         target_name: "".to_string(),
+        finite_bound: 10,
     });
 }
 
@@ -43,6 +45,36 @@ struct Context {
     inline_comment_lines: HashSet<usize>,
 }
 
+
+impl VerusParser {
+    pub fn split_implication(expr: &str) -> (Option<Pair<'_, Rule>>, Option<Pair<'_, Rule>>) {
+        let parts: Vec<&str> = expr.split("==>").collect();
+
+        if parts.len() != 2 {
+            return (None, None);
+        }
+
+        let lhs_str = parts[0].trim();
+        let rhs_str = parts[1].trim();
+
+        let lhs = Self::parse(Rule::expr, lhs_str)
+            .ok()
+            .and_then(|mut pairs| pairs.next());
+
+        let rhs = Self::parse(Rule::expr, rhs_str)
+            .ok()
+            .and_then(|mut pairs| pairs.next());
+
+        (lhs, rhs)
+    }
+
+    pub fn str_to_expr(expr: &str) -> (Option<Pair<'_, Rule>>) {
+        let parsed_expr = Self::parse(Rule::expr, expr)
+            .ok()
+            .and_then(|mut pairs| pairs.next());
+        parsed_expr
+    }
+}
 // When in doubt, we should generally try to stick to Rust style guidelines:
 //   https://doc.rust-lang.org/beta/style-guide/items.html
 
@@ -1641,6 +1673,11 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitor::CoreDa
             let simpleV = simpleV::SimpleVisitor::new(visit_dat.target_name.clone());
             simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "QuantifierVisitor" => {
+            // Create an instance of SimpleVisitor with the target_name from CoreDatum
+            let quantV = quantifierV::QuantifierVisitor::new(visit_dat.target_name.clone());
+            quantV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
     }
 
@@ -1758,6 +1795,7 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str) -> miette::Result<Stri
     if let Some(first_fn_name) = visit_dat.fn_calls.keys().next() {
         visit_dat.target_name = first_fn_name.clone();
     }  
+    
     // Debugging statements to print the contents of visit_dat
     // println!("Current visit_dat contents:");
     // println!("Program: {}", visit_dat.program);
