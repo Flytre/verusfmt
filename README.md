@@ -1,5 +1,11 @@
 # Verusfmt Additions
 
+## Running With Multiple Visitors
+
+`cargo run sample.rs --visitors [list of visitors]`
+i.e.
+`cargo run sample.rs --visitors CoreVerusVisitor,SimpleVisitor`
+
 
 [Pull Request](https://github.com/Flytre/verusfmt/pull/1/files)
 

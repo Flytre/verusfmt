@@ -7,7 +7,7 @@ pub trait HasProgram {
     fn program_mut(&mut self) -> &mut String;
 }
 
-trait HandlerInterface<T: HasProgram> {
+pub trait HandlerInterface<T: HasProgram> {
     fn get_handler(&self, rule: &str) -> Option<fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>)>;
 }
 
@@ -36,7 +36,7 @@ impl<T: HasProgram> HandlerMap<T> {
         Self { handlers }
     }
 
-    fn insert(
+    pub fn insert(
         &mut self,
         key: &'static str,
         handler: fn(&mut T, Pair<Rule>, &dyn HandlerInterface<T>),
@@ -55,7 +55,7 @@ pub struct VerusVisitor;
 
 impl VerusVisitor {
     fn visit<T: HasProgram>(datum: &mut T, pair: Pair<Rule>, handlers: &dyn HandlerInterface<T>) {
-        //println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
+        // println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
         let rule_name = format!("{:?}", pair.as_rule());
         if let Some(handler) = handlers.get_handler(&rule_name) {
             handler(datum, pair, handlers);
@@ -160,7 +160,7 @@ impl VerusVisitor {
         // Do nothing for comments
     }
 
-    fn visit_all<T: HasProgram>(
+   pub fn visit_all<T: HasProgram>(
         datum: &mut T,
         pairs: Pairs<Rule>,
         handlers: &dyn HandlerInterface<T>,
@@ -170,11 +170,14 @@ impl VerusVisitor {
         }
     }
 }
+
 #[derive(Clone, Debug)]
 pub struct CoreDatum {
     pub program: String,
-    pub fn_map: HashMap<String, String>, //assume names are unique for now
+    pub fn_map: HashMap<String, String>, // Assume names are unique for now
     pub fn_calls: HashMap<String, Vec<Vec<String>>>,
+    pub target_name: String,             // Add target_name 
+    pub finite_bound: usize,
 }
 
 // Implement HasProgram for CoreDatum
@@ -187,6 +190,12 @@ impl HasProgram for CoreDatum {
         &mut self.program
     }
 }
+impl CoreDatum {
+    pub fn get_target_name(&self) -> &String {
+        &self.target_name
+    }
+}
+
 pub struct CoreVerusVisitor {}
 
 impl CoreVerusVisitor {
@@ -214,6 +223,7 @@ impl CoreVerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
+        
         let name = pair
             .clone()
             .into_inner()
