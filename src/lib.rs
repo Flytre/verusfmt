@@ -1,7 +1,6 @@
 mod rustfmt;
-mod visitor;
-mod simpleV;
-mod quantifierV;
+mod visitors;
+
 
 pub use crate::rustfmt::{rustfmt, RustFmtConfig};
 
@@ -13,9 +12,9 @@ use std::collections::HashSet;
 use tracing::{debug, enabled, error, info, Level};
 use std::collections::HashMap;
 use miette::{miette, Result}; // Importing miette and Result
-use crate::simpleV::SimpleVisitor; 
+use crate::visitors::simpleV::SimpleVisitor; 
 use lazy_static::lazy_static;
-use crate::visitor::CoreDatum;
+use crate::visitors::visitor::CoreDatum;
 use std::sync::Mutex;
 
 lazy_static! {
@@ -1650,7 +1649,7 @@ impl miette::Diagnostic for ParseAndFormatError {
     }
 }
 
-fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitor::CoreDatum) -> miette::Result<String> {
+fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visitor::CoreDatum) -> miette::Result<String> {
     // Create a context for inline comments
     let ctx = Context {
         inline_comment_lines: find_inline_comment_lines(s),
@@ -1666,16 +1665,16 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitor::CoreDa
     // Match on the visitor name to invoke the correct visitor handling logic
     match visitor_name {
         "CoreVerusVisitor" => {
-            visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
+            visitors::visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
         }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let simpleV = simpleV::SimpleVisitor::new(visit_dat.target_name.clone());
+            let simpleV = visitors::simpleV::SimpleVisitor::new(visit_dat.target_name.clone());
             simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let quantV = quantifierV::QuantifierVisitor::new(visit_dat.target_name.clone());
+            let quantV = visitors::quantifierV::QuantifierVisitor::new(visit_dat.target_name.clone());
             quantV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
