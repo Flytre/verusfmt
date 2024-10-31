@@ -12,7 +12,6 @@ use std::collections::HashSet;
 use tracing::{debug, enabled, error, info, Level};
 use std::collections::HashMap;
 use miette::{miette, Result}; // Importing miette and Result
-use crate::visitors::simpleV::SimpleVisitor; 
 use lazy_static::lazy_static;
 use crate::visitors::visitor::CoreDatum;
 use std::sync::Mutex;
@@ -1669,12 +1668,12 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
         }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let simpleV = visitors::simpleV::SimpleVisitor::new(visit_dat.target_name.clone());
+            let simpleV = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
             simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let quantV = visitors::quantifierV::QuantifierVisitor::new(visit_dat.target_name.clone());
+            let quantV = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
             quantV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
