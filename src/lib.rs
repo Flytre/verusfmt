@@ -1781,9 +1781,28 @@ impl Default for RunOptions {
     }
 }
 
-pub fn run(s: &str, opts: RunOptions, visitor_name: &str) -> miette::Result<String> {
+pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Option<String>) -> miette::Result<String> {
     let unparsed_file = s;
 
+    // Call str_to_expr on the failed_assertion if it's Some
+    if let Some(expr) = failed_assertion {
+        println!("Debug: Attempting to parse failed assertion: {}", expr);
+        let parsed_expr = VerusParser::str_to_expr(&expr);
+        
+        // Handle parsed_expr as needed
+        if parsed_expr.is_none() {
+            // Handle the case where parsing failed
+            println!("Debug: Parsing failed for expression: {}", expr);
+            return Err(miette!("Failed to parse the assertion expression"));
+        } else {
+            if let Some(pair) = parsed_expr {
+                // Successfully parsed; extract the string representation from the Pair
+                let parsed_string = pair.as_str(); // This assumes that `Pair` has a method `as_str()`
+                println!("Debug: Successfully parsed assertion expression: {}", parsed_string);
+                // Use the parsed_string as needed, e.g., log it or integrate it with visit_dat
+            }
+        }
+    }
     let file_name = opts.file_name.clone().unwrap_or("<input>".into());
 
     // Lock the mutex to access the shared state

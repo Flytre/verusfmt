@@ -42,6 +42,9 @@ struct Args {
     /// List of visitor names to be used
     #[arg(long = "visitors", value_parser, value_delimiter = ',')]
     visitors: Vec<String>,
+    /// Assertion code to identify failure (optional, for analysis)
+    #[arg(long = "assertion-code")]
+    failed_assertion: Option<String>,
 }
 fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
     let unparsed_file = fs::read_to_string(file).into_diagnostic()?;
@@ -89,7 +92,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         };
 
         // Call run with the current output and the visitor name
-        let formatted_output = verusfmt::run(&current_output, run_options, visitor)?;
+        let formatted_output = verusfmt::run(&current_output, run_options, visitor, args.failed_assertion.clone())?;
         let formatted_file_path = file.with_file_name(formatted_file_name.clone());
 
         // Write the cloned output to file
@@ -126,7 +129,8 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             run_rustfmt: !args.verus_only,
             rustfmt_config: rustfmt_config.clone(),
         };
-        let reformatted = verusfmt::run(&current_output, run_options, "CoreVerusVisitor")?; // Or another visitor if desired
+        let my_str: &str = "example";
+        let reformatted = verusfmt::run(&current_output, run_options, "CoreVerusVisitor", Some(my_str.to_string()))?;
         if current_output == reformatted {
             return Err(miette!("✨Idempotent run✨"));
         } else {
@@ -192,6 +196,10 @@ fn main() -> miette::Result<()> {
 
     if args.files.is_empty() {
         return Err(miette!("No files specified"));
+    }
+        // Access the assertion code if provided
+    if let Some(failed_assertion) = &args.failed_assertion {
+        println!("First Failed Assertion: {}", failed_assertion);
     }
 
     let mut errors = vec![];
