@@ -12,7 +12,6 @@ use std::collections::HashSet;
 use tracing::{debug, enabled, error, info, Level};
 use std::collections::HashMap;
 use miette::{miette, Result}; // Importing miette and Result
-use crate::visitors::simpleV::SimpleVisitor; 
 use lazy_static::lazy_static;
 use crate::visitors::visitor::CoreDatum;
 use std::sync::Mutex;
@@ -1669,12 +1668,12 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
         }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let simpleV = visitors::simpleV::SimpleVisitor::new(visit_dat.target_name.clone());
+            let simpleV = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
             simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let quantV = visitors::quantifierV::QuantifierVisitor::new(visit_dat.target_name.clone());
+            let quantV = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
             quantV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
@@ -1782,9 +1781,28 @@ impl Default for RunOptions {
     }
 }
 
-pub fn run(s: &str, opts: RunOptions, visitor_name: &str) -> miette::Result<String> {
+pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Option<String>) -> miette::Result<String> {
     let unparsed_file = s;
 
+    // Call str_to_expr on the failed_assertion if it's Some
+    if let Some(expr) = failed_assertion {
+        println!("Debug: Attempting to parse failed assertion: {}", expr);
+        let parsed_expr = VerusParser::str_to_expr(&expr);
+        
+        // Handle parsed_expr as needed
+        if parsed_expr.is_none() {
+            // Handle the case where parsing failed
+            println!("Debug: Parsing failed for expression: {}", expr);
+            return Err(miette!("Failed to parse the assertion expression"));
+        } else {
+            if let Some(pair) = parsed_expr {
+                // Successfully parsed; extract the string representation from the Pair
+                let parsed_string = pair.as_str(); // This assumes that `Pair` has a method `as_str()`
+                println!("Debug: Successfully parsed assertion expression: {}", parsed_string);
+                // Use the parsed_string as needed, e.g., log it or integrate it with visit_dat
+            }
+        }
+    }
     let file_name = opts.file_name.clone().unwrap_or("<input>".into());
 
     // Lock the mutex to access the shared state

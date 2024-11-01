@@ -1,10 +1,29 @@
 # Verusfmt Additions
 
-## Running With Multiple Visitors
+## Running Manually With Multiple Visitors
 
 `cargo run sample.rs --visitors [list of visitors]`
 i.e.
 `cargo run sample.rs --visitors CoreVerusVisitor,SimpleVisitor`
+
+## Running End-To-End
+
+The python script `./src/runSMarTPeek.py [verus file]` will run verus on the target verus file. If the verification fails, it will then run this tool to finitize the specified verus file. After the finitization is complete, verus will again be run on the finite representation.
+
+To run this:
+1. set the `VERUS_PATH` env variable. i.e.
+```
+export VERUS_PATH="[path/to/verus]"
+```
+2. specify indented visitors by modifying the VISITORS variable in runSMarTPeek.py. i.e.
+```
+VISITORS = "CoreVerusVisitor,SimpleVisitor,QuantifierVisitor".split(',')
+```
+
+A simple working example can be run with the following: `./src/runSMarTPeek.py simple_end_to_end.rs` 
+
+---
+
 
 
 [Pull Request](https://github.com/Flytre/verusfmt/pull/1/files)
