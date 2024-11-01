@@ -18,7 +18,7 @@ verus! {
 
 spec fn is_prime(candidate: nat) -> bool {
     &&& 1 < candidate
-    &&& forall|factor: nat| 1 < factor < 11 ==> !divides(factor, candidate)
+    &&& forall|factor: nat| 1 < factor < candidate ==> !divides(factor, candidate)
 }
 
 
