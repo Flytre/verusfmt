@@ -11,13 +11,20 @@ VERUS_PATH = os.getenv("VERUS_PATH")
 # Visitor list verusFmt
 VISITORS = "CoreVerusVisitor,SimpleVisitor,QuantifierVisitor".split(',')
 
+
 def run_verus(file_path):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Determine the directory and filename of the input file
+    file_dir = Path(file_path).parent
+    file_stem = Path(file_path).stem
     
-    # Create the temp file for log output
-    with tempfile.NamedTemporaryFile(dir=script_dir, delete=False, suffix=".log") as temp_file:
-        temp_file_path = temp_file.name
+    # Create the 'logs' directory within the script's directory if it doesn't exist
+    script_dir = Path(__file__).parent  # Directory of the current script
+    logs_dir = script_dir / "logs"
+    logs_dir.mkdir(exist_ok=True)
     
+    # Set the temp file path in the 'logs' directory, with a name based on the input file
+    temp_file_path = logs_dir / f"{file_stem}_verus.log"
+    print(f"verus log created at: {temp_file_path}")
     try:
         result = subprocess.run(
             [VERUS_PATH, "--log-all", file_path],
@@ -44,6 +51,7 @@ def run_verus(file_path):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None, temp_file_path
+
 
 
         
@@ -161,7 +169,7 @@ def main(rust_file):
             # Create a new filename for Verus based on visitor and count
             input_file_stem = Path(rust_file).stem  # Get the stem of the input file
             new_file_name = f"{input_file_stem}_formatted_{last_visitor}_{visitor_count}.rs"
-            new_file_path = Path(rust_file).parent / new_file_name  # Ensure the new file path is correct
+            new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name  # Ensure the new file path is correct
             
             # Check if the new file exists before running Verus on it
             if not new_file_path.is_file():

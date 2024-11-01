@@ -78,7 +78,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
 
         // Generate the formatted file name for the current visitor
         let formatted_file_name = format!(
-            "{}_formatted_{}_{}.rs",
+           "./tempFiles/{}_formatted_{}_{}.rs",
             file.file_stem().unwrap().to_string_lossy(),
             visitor,
             current_count // Use the current count to make the filename unique
