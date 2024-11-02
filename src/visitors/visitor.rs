@@ -27,6 +27,7 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("verus_macro_use", VerusVisitor::visit_verus_macro_use);
         handlers.insert("param_list", VerusVisitor::visit_param_list);
         handlers.insert("fn_block_expr", VerusVisitor::visit_fn_block_expr);
+        handlers.insert("stmt_list", VerusVisitor::visit_stmt_list);
         handlers.insert("closure_param_list", VerusVisitor::visit_closure_param_list);
         handlers.insert(
             "comma_delimited_exprs",
@@ -83,6 +84,16 @@ impl VerusVisitor {
         }
     }
 
+    fn visit_stmt_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{\n");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("}\n");
+    }
+    
     fn visit_verus_macro_use<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
