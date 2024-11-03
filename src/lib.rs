@@ -1671,6 +1671,11 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             let simpleV = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
             simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "StripProofVisitor" => {
+            // Create an instance of StripProofVisitor with the target_name from CoreDatum
+            let simpleV = visitors::strip_proof_visitor::StripProofVisitor::new(visit_dat.target_name.clone());
+            simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "QuantifierVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let quantV = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
