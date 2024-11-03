@@ -76,27 +76,39 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
            // Update the count for the next iteration
         *count += 1;
 
+        let file_stem = file.file_stem().unwrap().to_string_lossy();
+        // Remove the "./tempFiles/" prefix if it exists
+        let cleaned_stem = if file_stem.starts_with("tempFiles/") {
+            &file_stem["tempFiles/".len()..] // Strip the prefix
+        } else {
+            file_stem.as_ref() // Return the original if no prefix
+        };
+        
         // Generate the formatted file name for the current visitor
         let formatted_file_name = format!(
-           "./tempFiles/{}_formatted_{}_{}.rs",
-            file.file_stem().unwrap().to_string_lossy(),
+            "./tempFiles/{}_formatted_{}_{}.rs",
+            cleaned_stem,
             visitor,
             current_count // Use the current count to make the filename unique
         );
-    
+        
         // Update run_options to use the new formatted file name
         let run_options = verusfmt::RunOptions {
             file_name: Some(formatted_file_name.clone()), // Use formatted_file_name here
             run_rustfmt: !args.verus_only,
             rustfmt_config: rustfmt_config.clone(),
         };
-
         // Call run with the current output and the visitor name
         let formatted_output = verusfmt::run(&current_output, run_options, visitor, args.failed_assertion.clone())?;
-        let formatted_file_path = file.with_file_name(formatted_file_name.clone());
-
+        // let formatted_file_path = file.with_file_name(formatted_file_name.clone()).to_string();
+        
+        // let cleaned_formatted_file_path = if formatted_file_path.starts_with("tempFiles/./tempFiles/") {
+        //     &formatted_file_path["tempFiles/".len()..] // Strip the prefix
+        // } else {
+        //     formatted_file_path.as_ref() // Return the original if no prefix
+        // };
         // Write the cloned output to file
-        fs::write(formatted_file_path, formatted_output.clone()).into_diagnostic()?;
+        fs::write(formatted_file_name.clone(), formatted_output.clone()).into_diagnostic()?;
         println!("written visitor pass to file: {}", formatted_file_name.clone());
         // Update current_output for the next visitor
         current_output = formatted_output; // Now this can directly use the original value
