@@ -1803,8 +1803,8 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Opti
             if let Some(pair) = parsed_expr {
                 // Successfully parsed; extract the string representation from the Pair
                 let parsed_string = pair.as_str(); // This assumes that `Pair` has a method `as_str()`
-                println!("Debug: Successfully parsed assertion expression: {}", parsed_string);
-                // Use the parsed_string as needed, e.g., log it or integrate it with visit_dat
+                println!("Debug: Successfully parsed assertion expression: {:?}", parsed_string);
+                // println!("Debug: Successfully parsed assertion expression: {:?} {:?}", parsed_string, pair);
             }
         }
     }

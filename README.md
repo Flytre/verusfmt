@@ -22,6 +22,9 @@ VISITORS = "CoreVerusVisitor,SimpleVisitor,QuantifierVisitor".split(',')
 
 A simple working example can be run with the following: `./src/runSMarTPeek.py simple_end_to_end.rs` 
 
+`runSMarTPeek.py` has an optional cmdline arg `mode = [Full(default), Proof, Impl]` Specifiying one of these will dictate if just impl is checked, just the proof, or both.
+i.e. `./src/runSMarTPeek.py --mode Proof simple_end_to_end.rs`
+
 ---
 
 
