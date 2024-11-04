@@ -1666,20 +1666,25 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
         "CoreVerusVisitor" => {
             visitors::visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
         }
+        "LoopVisitor" => {
+            // Create an instance of SimpleVisitor with the target_name from CoreDatum
+            let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
+            loopVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let simpleV = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
-            simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let simpleVisitor = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
+            simpleVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "StripProofVisitor" => {
             // Create an instance of StripProofVisitor with the target_name from CoreDatum
-            let simpleV = visitors::strip_proof_visitor::StripProofVisitor::new(visit_dat.target_name.clone());
-            simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let stripProofVisitor = visitors::strip_proof_visitor::StripProofVisitor::new(visit_dat.target_name.clone());
+            stripProofVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let quantV = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
-            quantV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let quantifierVisitor = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
+            quantifierVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
     }
