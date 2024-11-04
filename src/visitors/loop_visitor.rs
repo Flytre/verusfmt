@@ -15,7 +15,7 @@ impl LoopVisitor {
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
         let mut handlers = HandlerMap::new();
-        handlers.insert("fn", LoopVisitor::visit_function);
+        handlers.insert("identifier", LoopVisitor::visit_identifier);
         handlers
     }
 
@@ -37,5 +37,5 @@ impl LoopVisitor {
         }
     }
 
-    
+
 }
