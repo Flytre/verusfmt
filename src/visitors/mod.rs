@@ -1,4 +1,5 @@
 pub mod visitor;
+pub mod loop_visitor;
 pub mod simple_visitor;
 pub mod strip_proof_visitor;
 pub mod quantifier_visitor;

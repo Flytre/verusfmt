@@ -186,6 +186,11 @@ impl VerusVisitor {
         _handlers: &dyn HandlerInterface<T>,
     ) {
         // Do nothing for comments
+        //[TODO] : Comments in the middle of comma separated list:
+        //i.e. this example causes an error
+            // ensures f.len() == n, 
+            // f[0] == 0,  // comments in the middle of comma list still not covered
+            // f[n-1] != 0,
     }
 
    pub fn visit_all<T: HasProgram>(

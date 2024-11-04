@@ -15,7 +15,9 @@ verus! {
 fn indexUpTo(n:u32) -> (f: Vec<u32>)
     requires n > 0,
     ensures f.len() == n, 
-             f[0] == 0, // multiple ens is the problem!!
+             f[0] == 0, 
+             f[n-1] != 0, // comments in the middle of comma list still not coverd
+
 {
     let mut v: Vec<u32> = Vec::new();
     v.push(0);
@@ -23,7 +25,7 @@ fn indexUpTo(n:u32) -> (f: Vec<u32>)
     assert(v.len() == 1);
     assert(v[0] == 0);
     while(i < n)
-        invariant i > 0,
+        invariant i == 0,
             v.len() > i,
             v[0] == 0,
             i <= n,
@@ -33,7 +35,7 @@ fn indexUpTo(n:u32) -> (f: Vec<u32>)
         i = i + 1; 
         
     }
-    assert(v[n-1]!= 0);
+    // assert(v[n-1]!= 0);
     return v;
 }
 

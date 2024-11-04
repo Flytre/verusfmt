@@ -1666,20 +1666,25 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
         "CoreVerusVisitor" => {
             visitors::visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
         }
+        "LoopVisitor" => {
+            // Create an instance of SimpleVisitor with the target_name from CoreDatum
+            let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
+            loopVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let simpleV = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
-            simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let simpleVisitor = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
+            simpleVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "StripProofVisitor" => {
             // Create an instance of StripProofVisitor with the target_name from CoreDatum
-            let simpleV = visitors::strip_proof_visitor::StripProofVisitor::new(visit_dat.target_name.clone());
-            simpleV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let stripProofVisitor = visitors::strip_proof_visitor::StripProofVisitor::new(visit_dat.target_name.clone());
+            stripProofVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let quantV = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
-            quantV.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let quantifierVisitor = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
+            quantifierVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
     }
@@ -1803,8 +1808,8 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Opti
             if let Some(pair) = parsed_expr {
                 // Successfully parsed; extract the string representation from the Pair
                 let parsed_string = pair.as_str(); // This assumes that `Pair` has a method `as_str()`
-                println!("Debug: Successfully parsed assertion expression: {}", parsed_string);
-                // Use the parsed_string as needed, e.g., log it or integrate it with visit_dat
+                println!("Debug: Successfully parsed assertion expression: {:?}", parsed_string);
+                // println!("Debug: Successfully parsed assertion expression: {:?} {:?}", parsed_string, pair);
             }
         }
     }

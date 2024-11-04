@@ -209,10 +209,6 @@ fn main() -> miette::Result<()> {
     if args.files.is_empty() {
         return Err(miette!("No files specified"));
     }
-        // Access the assertion code if provided
-    if let Some(failed_assertion) = &args.failed_assertion {
-        println!("First Failed Assertion: {}", failed_assertion);
-    }
 
     let mut errors = vec![];
     for file in &args.files {

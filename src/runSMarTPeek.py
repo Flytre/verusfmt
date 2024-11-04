@@ -4,6 +4,7 @@ import re
 import sys
 import os
 from pathlib import Path
+import argparse
 
 # Specify the path to the Verus executable here
 VERUS_PATH = os.getenv("VERUS_PATH")
@@ -99,7 +100,7 @@ def handle_verus_output(output):
         return status, None, None  # Return status and None for others to indicate failure
 
     if status == "Success":
-        print("Verification Result: Success")
+        print("Verification Result: Success\n")
     else:
         print("Verification Result: Failure")
         print("First Failed Case:")
@@ -123,7 +124,7 @@ def analyze_output(output):
     if abort_pattern.search(output) and verification_results_pattern.search(output):
         return "Failure", None, None, "Aborted due to previous errors with no verified results.", None
 
-    # Check for the mismatched types error pattern
+    # Check for mismatched types error
     mismatched_types_pattern = re.compile(
         r"error\[E0308\]: mismatched types\s*"
         r"--> (.*?):(\d+):\d+\s*"
@@ -140,36 +141,39 @@ def analyze_output(output):
     if "0 errors" in output:
         return "Success", None, None, None, None
 
-    # Match the failure pattern for assertion failures
-    assertion_pattern = re.compile(
-        r"error: assertion failed\s+--> (.*?):(\d+):\d+\s+"
-        r".*?\n\s*(\d+ \|.*?)\n\s*\|\s*(.*?)(?=\s+assertion failed)",  # Match until 'assertion failed'
-        re.DOTALL
-    )
+    # Define patterns for assertion, postcondition, and loop invariant errors
+    error_patterns = {
+        "Assertion": re.compile(
+            r"error: assertion failed\s+--> (.*?):(\d+):\d+\s+"
+            r".*?\n\s*(\d+ \|.*?)\n\s*\|\s*(.*?)(?=\s+assertion failed)", re.DOTALL
+        ),
+        "Postcondition": re.compile(
+            r"error: postcondition not satisfied\s+--> (.*?):(\d+):\d+\s+"
+            r".*?\n\s*(\d+ \|.*?)\n\s*\|\s*(.*?) failed this postcondition", re.DOTALL
+        ),
+        "LoopInvariant": re.compile(
+            r"error: invariant not satisfied (?:at end of loop body|before loop)\s+--> (.*?):(\d+):\d+\s+"
+            r".*?\n\s*(\d+ \|.*?)\n\s*\|\s*(.*?)", re.DOTALL
+        )
+    }
 
-    # Match the failure pattern for postcondition failures
-    postcondition_pattern = re.compile(
-        r"error: postcondition not satisfied\s+--> (.*?):(\d+):\d+\s+"
-        r".*?\n\s*(\d+ \|.*?)\n\s*\|\s*(.*?) failed this postcondition",
-        re.DOTALL
-    )
+    # Initialize to find the first error occurrence
+    first_error_type, first_error_match, first_error_position = None, None, float('inf')
 
-    # Search the output for assertion failures first
-    match = assertion_pattern.search(output)
-    if match:
-        file_name = match.group(1)
-        line_number = match.group(2)
-        assertion_code = match.group(3).strip().split('|')[-1].strip()
-        return "Failure", file_name, line_number, assertion_code, "Assertion"
+    # Search for each error type and determine the earliest one
+    for error_type, pattern in error_patterns.items():
+        match = pattern.search(output)
+        if match and match.start() < first_error_position:
+            first_error_type = error_type
+            first_error_match = match
+            first_error_position = match.start()
 
-    # Search the output for postcondition failures if no assertion failures were found
-    match = postcondition_pattern.search(output)
-    if match:
-        file_name = match.group(1)
-        line_number = match.group(2)
-        postcondition_code = match.group(3).strip().split('|')[-1].strip()  # Extracts postcondition code
-        return "Failure", file_name, line_number, postcondition_code, "Postcondition"
-
+    # Return the earliest matched error type
+    if first_error_match:
+        file_name = first_error_match.group(1).strip()
+        line_number = first_error_match.group(2).strip()
+        error_code = first_error_match.group(3).strip().split('|')[-1].strip()
+        return "Failure", file_name, line_number, error_code, first_error_type
 
     # Return "unknown verification error" if no matches were found
     return "Failure", None, None, "Unknown verification error.", None
@@ -191,6 +195,8 @@ def run_cargo(file_path, assertion_code=None, visitors=None):
 
     # If assertion_code is provided, add it to the command
     if assertion_code:
+        if assertion_code.startswith("invariant"):
+            assertion_code = assertion_code[len("invariant"):].strip()  # Remove "invariant" prefix if it exists
         cargo_command.extend(["--assertion-code", assertion_code])
 
     # Execute the command and capture the output
@@ -208,77 +214,83 @@ def run_cargo(file_path, assertion_code=None, visitors=None):
 
 
 
-def main(rust_file):
+def main(rust_file, mode='Full'):
     if not Path(rust_file).is_file():
         print(f"Error: File '{rust_file}' not found.")
         return
-    
-    # First Step (Provers Dilema) Step: Run Cargo with only StripProofVisitor
-    print("--------------------")
-    print("Running Cargo with StripProofVisitor")
-    print("--------------------\n")
-
-    run_cargo(rust_file, visitors=["StripProofVisitor"])  # Passing StripProofVisitor
-    
-    print("--------------------")
-    print("Verus Check -- Stripped Impl")
-    print("--------------------\n")
-
-    # Define the new file name and path for the formatted file
-    input_file_stem = Path(rust_file).stem  # Get the stem of the input file
-    new_file_name = f"{input_file_stem}_formatted_StripProofVisitor_0.rs"
-    new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name  # Ensure the new file path is correct
-
-    # Check if the new file exists before running Verus on it
-    if not new_file_path.is_file():
-        print(f"Error: The file '{new_file_path}' does not exist. Please check if it was created successfully.")
-        return
-    
-    # Run Verus on the formatted file
-    print(f"Running Verus on: {new_file_path}")
-    verus_output, verus_returncode = run_verus(new_file_path)
-    
-    # Analyze the output of the Verus run
-    status, assertion_code, failure_type = handle_verus_output(verus_output) 
-
-    if(not(status == "Success" and assertion_code == None)):
-        print("Finitizing Impl..")
+    if(mode == "Full" or mode == "Impl"):
+        # First Step (Provers Dilema) Step: Run Cargo with only StripProofVisitor
         print("--------------------")
-        print("Finitization (Impl) Step")
+        print("Running Cargo with StripProofVisitor")
         print("--------------------\n")
 
-        run_cargo(new_file_path,assertion_code) 
+        run_cargo(rust_file, visitors=["StripProofVisitor"])  # Passing StripProofVisitor
+        
+        print("--------------------")
+        print("Verus Check -- Stripped Impl")
+        print("--------------------\n")
 
-        status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Imply Only") 
-        if(status == "Failure"):
-            print("IMPL IS INCORRECT")
+        # Define the new file name and path for the formatted file
+        input_file_stem = Path(rust_file).stem  # Get the stem of the input file
+        new_file_name = f"{input_file_stem}_formatted_StripProofVisitor_0.rs"
+        new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name  # Ensure the new file path is correct
+
+        # Check if the new file exists before running Verus on it
+        if not new_file_path.is_file():
+            print(f"Error: The file '{new_file_path}' does not exist. Please check if it was created successfully.")
             return
-    print("Proof Succeeds With Just Impl! Checking Proof...\n")
+        
+        # Run Verus on the formatted file
+        print(f"Running Verus on: {new_file_path}")
+        verus_output, verus_returncode = run_verus(new_file_path)
+        
+        # Analyze the output of the Verus run
+        status, assertion_code, failure_type = handle_verus_output(verus_output) 
 
-    print("----------------------------------------")
-    print("--------------------")
-    print("Verus Check - Original File")
-    print("--------------------\n")
+        if(not(status == "Success" and assertion_code == None)):
+            print("Finitizing Impl..")
+            print("\n--------------------")
+            print("Finitization (Impl) Step")
+            print("--------------------\n")
 
-    # Run Verus on the initial file
-    verus_output, verus_returncode = run_verus(rust_file)
-    status, assertion_code, failure_type = handle_verus_output(verus_output) 
-    # Run Cargo with visitors if verification fails
-    if assertion_code:  # Only proceed if there is an assertion code
+            run_cargo(new_file_path,assertion_code) 
+
+            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Imply Only") 
+            if(status == "Failure"):
+                print("IMPL IS INCORRECT")
+                return
+
+    print("----------------------------------------\n")
+
+    if(mode == "Full" or mode == "Proof"):
         print("--------------------")
-        print("Finitization (proof) Step")
+        print("Verus Check - Original File")
         print("--------------------\n")
 
-        run_cargo(rust_file, assertion_code)  # Use the captured assertion_code
+        # Run Verus on the initial file
+        verus_output, verus_returncode = run_verus(rust_file)
+        status, assertion_code, failure_type = handle_verus_output(verus_output) 
+        # Run Cargo with visitors if verification fails
+        if assertion_code:  # Only proceed if there is an assertion code
+            print("--------------------")
+            print("Finitization (proof) Step")
+            print("--------------------\n")
 
-        # print("--------------------")
-        # print("Running Verus On Finitized System")
-        # print("--------------------\n")
+            run_cargo(rust_file, assertion_code)  # Use the captured assertion_code
 
-        run_verus_on_finitized_system(rust_file, "Proof")
+            run_verus_on_finitized_system(rust_file, "Proof")
+
+
+
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python verify_rust.py <rust_file>")
-    else:
-        main(sys.argv[1])
+ # Set up command-line argument parsing
+    parser = argparse.ArgumentParser(description='Verify Rust files using Verus.')
+    parser.add_argument('--mode', type=str, choices=['Full', 'Proof', 'Impl'], default='Full', 
+                        help='Mode of verification (default: Full).')
+    
+    # Collect all arguments except the last one as input
+    args, input_file = parser.parse_known_args()  # Parse the arguments
+
+    main(input_file[-1], mode=args.mode)  # Pass the last argument as input file and mode
