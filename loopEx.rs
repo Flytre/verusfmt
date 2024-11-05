@@ -13,7 +13,7 @@ verus! {
 
 
 fn indexUpTo(n:u32) -> (f: Vec<u32>)
-    requires n > 0,
+    requires n > 1,
     ensures f.len() == n, 
              f[0] == 0, 
              f[n-1] != 0, // comments in the middle of comma list still not coverd
@@ -26,11 +26,12 @@ fn indexUpTo(n:u32) -> (f: Vec<u32>)
     assert(v[0] == 0);
     while(i < n)
         invariant i == 0,
-            v.len() > i,
+            v.len() == i,
             v[0] == 0,
             i <= n,
             
     {
+        //loop inv wrong! 
         v.push(i);
         i = i + 1; 
         

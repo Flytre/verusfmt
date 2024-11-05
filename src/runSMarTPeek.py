@@ -10,7 +10,7 @@ import argparse
 VERUS_PATH = os.getenv("VERUS_PATH")
 
 # Visitor list verusFmt
-VISITORS = "CoreVerusVisitor,SimpleVisitor,QuantifierVisitor".split(',')
+VISITORS = "CoreVerusVisitor,SimpleVisitor,QuantifierVisitor,LoopVisitor,RangeBoundsVisitor".split(',')
 
 
 def run_verus(file_path):
@@ -255,7 +255,7 @@ def main(rust_file, mode='Full'):
 
             run_cargo(new_file_path,assertion_code) 
 
-            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Imply Only") 
+            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only") 
             if(status == "Failure"):
                 print("IMPL IS INCORRECT")
                 return
