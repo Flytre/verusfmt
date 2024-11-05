@@ -15,6 +15,7 @@ use miette::{miette, Result}; // Importing miette and Result
 use lazy_static::lazy_static;
 use crate::visitors::visitor::CoreDatum;
 use std::sync::Mutex;
+// use crate::visitors::range_bounds_visitor::RangeBoundsDatum;
 
 lazy_static! {
     static ref VISIT_DATA: Mutex<CoreDatum> = Mutex::new(CoreDatum {
@@ -72,6 +73,13 @@ impl VerusParser {
             .and_then(|mut pairs| pairs.next());
         parsed_expr
     }
+    pub fn str_to_function(func_str: &str) -> Option<Pair<'_, Rule>> {
+        let parsed_func = Self::parse(Rule::item, func_str) // Directly using Rule::fn
+            .ok()
+            .and_then(|mut pairs| pairs.next());
+        parsed_func
+    }
+    
 }
 // When in doubt, we should generally try to stick to Rust style guidelines:
 //   https://doc.rust-lang.org/beta/style-guide/items.html
@@ -1671,6 +1679,16 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
             loopVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "RangeBoundsVisitor" => {
+            // Create an instance of RangeBoundsVisitor with the target_name from CoreDatum
+            let rangeBoundsVisitor = visitors::range_bounds_visitor::RangeBoundsVisitor::new(visit_dat.target_name.clone());
+            // let mut range_dat = visitors::range_bounds_visitor::RangeBoundsDatum {
+            //     program: visit_dat.program.clone(),
+            //     param_map: HashMap::new(),
+            // };
+            rangeBoundsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            // visit_dat.program = range_dat.program; //todo - clean up
+        }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let simpleVisitor = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
@@ -1682,7 +1700,7 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             stripProofVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
-            // Create an instance of SimpleVisitor with the target_name from CoreDatum
+            // Create an instance of QuantifierVisitor with the target_name from CoreDatum
             let quantifierVisitor = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
             quantifierVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
