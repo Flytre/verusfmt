@@ -174,37 +174,59 @@ impl RangeBoundsVisitor {
         }
     }
 
-    fn generate_requires_expression(datum: &mut CoreDatum, param_map: &HashMap<String, String>) -> Option<String> { //[TODO: Expand to handle more than numeric types]
-        // List of recognized numerical types
-        let numerical_types = ["int", "nat", "u32", "i32", "u64", "f32", "f64"];
+ //[TODO: Expand to handle more than numeric types]
+ fn generate_requires_expression(datum: &mut CoreDatum, param_map: &HashMap<String, String>) -> Option<String> {
+    // List of recognized numerical types
+    let numerical_types = ["int", "nat", "u32", "i32", "u64", "f32", "f64"];
+    
+    // Collect parameters with numerical types
+    let mut numerical_params = Vec::new();
+    let mut vector_params = Vec::new(); // Store vector type parameters
+
+    for (param, param_type) in param_map {
+        // Check for simple numerical types
+        if numerical_types.contains(&param_type.as_str()) {
+            numerical_params.push(param.clone());
+        } 
         
-        // Collect parameters with numerical types
-        let mut numerical_params = Vec::new();
-        for (param, param_type) in param_map {
-            if numerical_types.contains(&param_type.as_str()) {
-                numerical_params.push(param.clone());
-            }
-        }
-    
-        // Generate expression only if there are numerical parameters
-        if !numerical_params.is_empty() {
-            // Create expressions for bounds
-            let expressions = numerical_params
-                .into_iter()
-                .flat_map(|param| {
-                    vec![
-                        format!("{} >= 0", param),
-                        format!("{} <= {}", param, datum.finite_bound)
-                    ]
-                })
-                .collect::<Vec<String>>()
-                .join(",\n "); 
-    
-            Some(expressions)
-        } else {
-            None // No numerical parameters found
+        // Check for vector types
+        else if param_type.starts_with("&Vec<") {
+            // Add the parameter to vector_params regardless of the inner type
+            vector_params.push(param.clone());
         }
     }
+
+    // Generate expressions only if there are numerical parameters or vector parameters
+    let mut expressions = Vec::new();
+
+    // Add expressions for numerical parameters
+    if !numerical_params.is_empty() {
+        expressions.extend(numerical_params
+            .into_iter()
+            .flat_map(|param| {
+                vec![
+                    format!("{} >= 0", param),
+                    format!("{} <= {}", param, datum.finite_bound)
+                ]
+            }));
+    }
+
+    // Add expressions for vector parameters (only for length)
+    if !vector_params.is_empty() {
+        expressions.extend(vector_params
+            .into_iter()
+            .map(|param| format!("{}.len() <= {}", param, datum.finite_bound)));
+    }
+
+    // If we have any expressions, join and return them
+    if !expressions.is_empty() {
+        Some(expressions.join(",\n "))
+    } else {
+        None // No parameters found
+    }
+}
+
+
     
 
 
