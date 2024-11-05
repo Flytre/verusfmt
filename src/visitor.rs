@@ -1,7 +1,9 @@
+use crate::ParseAndFormatError;
 use crate::Rule;
+use crate::VerusParser;
 use pest::iterators::{Pair, Pairs};
+use pest::Parser;
 use std::collections::HashMap;
-
 pub trait HasProgram {
     fn program(&self) -> &String;
     fn program_mut(&mut self) -> &mut String;
@@ -289,11 +291,126 @@ impl CoreVerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        VerusVisitor::visit_verus_macro_use(datum, pair, handlers);
+        datum.program_mut().push_str("verus!{\n");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         println!(
             "Functions found (fn_map keys): {:?}",
             datum.fn_map.keys().collect::<Vec<&String>>()
         );
         println!("Function Calls (fn_calls): {:?}", datum.fn_calls);
+
+        for call in datum.fn_calls.keys() {
+            if datum.fn_map.contains_key(call) {
+                if let Some(arg_sets) = datum.fn_calls.get(call) {
+                    for args in arg_sets {
+                        if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
+                            println!("Valid call: {:?}", call);
+                            //todo:
+                            //parse the string, create a visitor that runs it and print the progn output
+
+                            let reparsed =
+                                VerusParser::parse(Rule::r#fn, datum.fn_map[call].as_str());
+                            let mut d = InlinerDatum {
+                                program: "".to_string(),
+                                inlined_args: args.clone(),
+                                original_args: vec![],
+                            };
+                            InlinerVisitor::inline_func(&mut d, reparsed.unwrap());
+                            datum.program += format!("\n{}", d.program).as_str();
+                        }
+                    }
+                }
+            }
+        }
+        datum.program_mut().push_str("}");
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct InlinerDatum {
+    pub program: String,
+    pub inlined_args: Vec<String>,
+    pub original_args: Vec<String>,
+}
+
+impl HasProgram for InlinerDatum {
+    fn program(&self) -> &String {
+        &self.program
+    }
+
+    fn program_mut(&mut self) -> &mut String {
+        &mut self.program
+    }
+}
+
+pub struct InlinerVisitor {}
+
+impl InlinerVisitor {
+    fn create_combined_handler_map() -> HandlerMap<InlinerDatum> {
+        let mut handlers = HandlerMap::new();
+        handlers.insert("fn", InlinerVisitor::visit_function);
+	handlers.insert("identifier", InlinerVisitor::visit_identifier);
+        handlers
+    }
+
+    fn visit_function(
+        datum: &mut InlinerDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<InlinerDatum>,
+    ) {
+        for fn_comp in pair.clone().into_inner() {
+            match fn_comp.as_rule() {
+                Rule::name => {
+                    let new_name = format!("{}_{}", fn_comp.as_str(), datum.inlined_args.join("_"));
+                    let new_name_rule = VerusParser::parse(Rule::name, new_name.as_str())
+                        .map_err(ParseAndFormatError::from)
+                        .expect("")
+                        .next()
+                        .unwrap();
+                    VerusVisitor::visit(datum, new_name_rule, handlers)
+                }
+                Rule::param_list => {
+                    datum.program += "(";
+                    for param in fn_comp.clone().into_inner() {
+                        for pc in param.clone().into_inner() {
+                            if pc.as_rule() == Rule::pat_no_top_alt {
+                                datum.original_args.push(pc.as_str().to_string());
+                            }
+                        }
+                    }
+                    datum.program += ") ";
+                }
+                _ => VerusVisitor::visit(datum, fn_comp, handlers),
+            }
+        }
+    }
+
+    pub fn visit_identifier(
+        datum: &mut InlinerDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<InlinerDatum>,
+    ) {
+        let identifier = pair.as_str();
+        if let Some(index) = datum.original_args.iter().position(|arg| arg == identifier) {
+            let inlined_value = datum.inlined_args.get(index).unwrap().clone();
+            let new_val = VerusParser::parse(Rule::int_number, inlined_value.as_str())
+                .map_err(ParseAndFormatError::from)
+                .expect("Parsing inlined argument failed")
+                .next()
+                .unwrap();
+            VerusVisitor::visit(datum, new_val, handlers);
+        } else {
+            VerusVisitor::default_visit(datum, pair, handlers);
+        }
+    }
+
+    pub fn inline_func(datum: &mut InlinerDatum, pairs: Pairs<Rule>) {
+        let handler_map: HandlerMap<InlinerDatum> = InlinerVisitor::create_combined_handler_map();
+
+        VerusVisitor::visit_all(
+            datum,
+            pairs,
+            &handler_map as &dyn HandlerInterface<InlinerDatum>,
+        );
     }
 }
