@@ -1742,6 +1742,7 @@ dependencies = [
  "glob",
  "glob-macro",
  "insta",
+ "lazy_static",
  "miette",
  "once_cell",
  "pest",

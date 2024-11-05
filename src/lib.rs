@@ -1665,8 +1665,8 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitor::CoreDa
 
     // Match on the visitor name to invoke the correct visitor handling logic
     match visitor_name {
-        "CoreVerusVisitor" => {
-            visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
+        "FunctionInlineVisitor" => {
+            visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
         }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum

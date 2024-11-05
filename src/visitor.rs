@@ -162,7 +162,7 @@ impl VerusVisitor {
         // Do nothing for comments
     }
 
-   pub fn visit_all<T: HasProgram>(
+    pub fn visit_all<T: HasProgram>(
         datum: &mut T,
         pairs: Pairs<Rule>,
         handlers: &dyn HandlerInterface<T>,
@@ -178,7 +178,7 @@ pub struct CoreDatum {
     pub program: String,
     pub fn_map: HashMap<String, String>, // Assume names are unique for now
     pub fn_calls: HashMap<String, Vec<Vec<String>>>,
-    pub target_name: String,             // Add target_name 
+    pub target_name: String, // Add target_name
     pub finite_bound: usize,
 }
 
@@ -198,20 +198,20 @@ impl CoreDatum {
     }
 }
 
-pub struct CoreVerusVisitor {}
+pub struct FunctionInlineVisitor {}
 
-impl CoreVerusVisitor {
+impl FunctionInlineVisitor {
     fn create_combined_handler_map() -> HandlerMap<CoreDatum> {
         let mut handlers = HandlerMap::new();
 
-        handlers.insert("fn", CoreVerusVisitor::visit_function);
-        handlers.insert("expr", CoreVerusVisitor::visit_expr);
-        handlers.insert("verus_macro_use", CoreVerusVisitor::visit_verus_macro_use);
+        handlers.insert("fn", FunctionInlineVisitor::visit_function);
+        handlers.insert("expr", FunctionInlineVisitor::visit_expr);
+        handlers.insert("verus_macro_use", FunctionInlineVisitor::visit_verus_macro_use);
         handlers
     }
 
     pub fn visit_all(datum: &mut CoreDatum, pairs: Pairs<Rule>) {
-        let handler_map = CoreVerusVisitor::create_combined_handler_map();
+        let handler_map = FunctionInlineVisitor::create_combined_handler_map();
         VerusVisitor::visit_all(
             datum,
             pairs,
@@ -225,7 +225,6 @@ impl CoreVerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        
         let name = pair
             .clone()
             .into_inner()
@@ -247,7 +246,7 @@ impl CoreVerusVisitor {
         let mut inner_pairs = pair.clone().into_inner();
 
         let mut function_name: Option<String> = None;
-        let mut arguments: Option<Vec<String>> = None;
+        let mut arguments: Option<String> = None;
 
         while let Some(inner_pair) = inner_pairs.next() {
             match inner_pair.as_rule() {
@@ -261,7 +260,7 @@ impl CoreVerusVisitor {
                     }
                 }
                 Rule::arg_list => {
-                    let args: Vec<String> = inner_pair
+                    let args: String = inner_pair
                         .into_inner()
                         .map(|p| p.as_str().to_string())
                         .collect();
@@ -271,19 +270,34 @@ impl CoreVerusVisitor {
             }
         }
 
+        let mut handled = false;
         if let (Some(function_name), Some(arguments)) = (function_name, arguments) {
             println!(
                 "Function called: {} with args: {:?}",
                 function_name, arguments
             );
+            let args: Vec<String> = arguments
+                .as_str()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect();
+
             datum
                 .fn_calls
-                .entry(function_name)
+                .entry(function_name.clone())
                 .or_insert_with(Vec::new)
-                .push(arguments);
-        }
+                .push(args.clone());
 
-        VerusVisitor::default_visit(datum, pair, handlers);
+            if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
+                let new_call = format!("{}_{}()", function_name.as_str(), args.join("_"));
+                let reparsed = VerusParser::parse(Rule::expr, new_call.as_str());
+		VerusVisitor::visit_all(datum, reparsed.unwrap(), handlers);
+                handled = true;
+            }
+        }
+        if !handled {
+            VerusVisitor::default_visit(datum, pair, handlers);
+        }
     }
 
     fn visit_verus_macro_use(
@@ -304,7 +318,6 @@ impl CoreVerusVisitor {
                 if let Some(arg_sets) = datum.fn_calls.get(call) {
                     for args in arg_sets {
                         if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
-                            println!("Valid call: {:?}", call);
                             //todo:
                             //parse the string, create a visitor that runs it and print the progn output
 
@@ -315,7 +328,7 @@ impl CoreVerusVisitor {
                                 inlined_args: args.clone(),
                                 original_args: vec![],
                             };
-                            InlinerVisitor::inline_func(&mut d, reparsed.unwrap());
+                            InlineSingleFunctionCallVisitor::inline_func(&mut d, reparsed.unwrap());
                             datum.program += format!("\n{}", d.program).as_str();
                         }
                     }
@@ -343,13 +356,13 @@ impl HasProgram for InlinerDatum {
     }
 }
 
-pub struct InlinerVisitor {}
+pub struct InlineSingleFunctionCallVisitor {}
 
-impl InlinerVisitor {
+impl InlineSingleFunctionCallVisitor {
     fn create_combined_handler_map() -> HandlerMap<InlinerDatum> {
         let mut handlers = HandlerMap::new();
-        handlers.insert("fn", InlinerVisitor::visit_function);
-	handlers.insert("identifier", InlinerVisitor::visit_identifier);
+        handlers.insert("fn", InlineSingleFunctionCallVisitor::visit_function);
+        handlers.insert("identifier", InlineSingleFunctionCallVisitor::visit_identifier);
         handlers
     }
 
@@ -405,7 +418,7 @@ impl InlinerVisitor {
     }
 
     pub fn inline_func(datum: &mut InlinerDatum, pairs: Pairs<Rule>) {
-        let handler_map: HandlerMap<InlinerDatum> = InlinerVisitor::create_combined_handler_map();
+        let handler_map: HandlerMap<InlinerDatum> = InlineSingleFunctionCallVisitor::create_combined_handler_map();
 
         VerusVisitor::visit_all(
             datum,
