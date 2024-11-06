@@ -19,8 +19,10 @@ impl QuantifierVisitor {
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
         let mut handlers = HandlerMap::new();
         handlers.insert("quantifier_expr", QuantifierVisitor::visit_quantifier); // contains logic for forall and exists
+        handlers.insert("quantifier_expr_no_struct", QuantifierVisitor::visit_quantifier); // treat the same as quantifier_expr
         handlers
     }
+
 
     pub fn visit_all(&self, datum: &mut CoreDatum, pairs: Pairs<Rule>) {
         let handler_map = Self::create_custom_handler_map();
@@ -49,6 +51,9 @@ impl QuantifierVisitor {
                         closure_param_list = Some(inner_pair.clone());
                     },
                     Rule::expr => {
+                        expr = Some(inner_pair.clone());
+                    },
+                    Rule::expr_no_struct => { // treat the same as expr
                         expr = Some(inner_pair.clone());
                     },
                     _ => {}
