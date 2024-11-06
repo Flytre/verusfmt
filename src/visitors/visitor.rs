@@ -37,6 +37,7 @@ impl<T: HasProgram> HandlerMap<T> {
             "comma_delimited_exprs_for_verus_clauses",
             VerusVisitor::visit_comma_delimited_exprs_for_verus_clauses,
         ); 
+        handlers.insert("paren_expr_inner", VerusVisitor::visit_paren_expr_inner);
         handlers.insert("arg_list", VerusVisitor::visit_arg_list);
         handlers.insert("COMMENT", VerusVisitor::visit_comment);
 
@@ -129,6 +130,16 @@ impl VerusVisitor {
         datum.program_mut().push_str("\n {");
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         datum.program_mut().push_str("\n } \n");
+    }
+
+    fn visit_paren_expr_inner<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("(");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str(")");
     }
 
     fn visit_closure_param_list<T: HasProgram>(
