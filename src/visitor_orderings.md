@@ -144,7 +144,7 @@ Logically, loop unrolling is similar to quantifier unrolling. So it makes sense 
 ### Function inlining and Recursive Calls
 
 Reference Code:
-```
+```rust
 spec fn func_call(n: nat) -> nat
 {
 	0
