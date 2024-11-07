@@ -1672,10 +1672,8 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
     // Match on the visitor name to invoke the correct visitor handling logic
     match visitor_name {
         "FunctionInlineVisitor" => {
-            visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
-        "CoreVerusVisitor" => {
-            visitors::visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
-        }
+            visitors::visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
+	},
         "LoopVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
