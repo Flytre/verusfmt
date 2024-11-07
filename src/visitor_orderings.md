@@ -182,5 +182,78 @@ This is consistent with the iterative case
 
 
 
+## Loop Unrolling vs Quantifier Expansion
+
+Reference Code (binary search, again):
+
+```
+fn binary_search(v: &Vec<u64>, k: u64) -> (r: usize)
+    requires
+        forall|i: int, j: int| 0 <= i <= j < v.len() ==> v[i] <= v[j],
+        exists|i: int| 0 <= i < v.len() && k == v[i],
+    ensures
+        r < v.len(),
+        k == v[r as int],
+{
+    let mut i1: usize = 0;
+    let mut i2: usize = v.len() - 1;
+    while i1 != i2
+        invariant
+            i2 < v.len(),
+            exists|i: int| i1 <= i <= i2 && k == v[i],
+            forall|i: int, j: int| 0 <= i <= j < v.len() ==> v[i] <= v[j],
+            func_call(v[i1]) # added for demo purposes
+    {
+        let ix = i1 + (i2 - i1) / 2;
+        if v[ix] < k {
+            i1 = ix + 1;
+        } else {
+            i2 = ix;
+        }
+    }
+    i1
+}
+```
+
+Quantifiers are in the proof layer, whereas loops are in the impl layer. Hence, they don't interact much. Expanding the quantifier clearly won't affect the impl layer since it sits on top. Expanding the proof impl layer won't affect the quantifier layer since the quantifiers can just be copy pasted as needed.
+
+## Loop Unrolling and Recursive calls
+
+```rust
+fn sum_nested_list(nested_list: &[Vec<i32>], depth: usize) -> i32 {
+    if depth >= nested_list.len() {
+        return 0;
+    }
+
+    let mut sum = 0;
+    for &item in &nested_list[depth] {
+        sum += item;
+    }
+
+    sum + sum_nested_list(nested_list, depth + 1)
+}
+```
+
+```rust
+fn mystery(input: nat) -> i32 {
+	if input == 0 {
+		return 1;
+	}
+	i32 result = 0;
+	for i in 0..input {
+		result += mystery(i);
+	}
+	return result;
+}
+```
 
 
+In the first case, the recursion and loop ordering are independent and thus the strategy order does not matter.
+
+In the second case, order still doesn't matter. We can expand the loop or the recursion first.
+
+
+
+## Quantifier vs Recursion Expansion
+
+This doesn't matter either. Same argument as quantifier vs loop.
