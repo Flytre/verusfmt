@@ -79,7 +79,7 @@ impl VerusParser {
             .and_then(|mut pairs| pairs.next());
         parsed_func
     }
-    
+
 }
 // When in doubt, we should generally try to stick to Rust style guidelines:
 //   https://doc.rust-lang.org/beta/style-guide/items.html
@@ -1671,6 +1671,8 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
 
     // Match on the visitor name to invoke the correct visitor handling logic
     match visitor_name {
+        "FunctionInlineVisitor" => {
+            visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
         "CoreVerusVisitor" => {
             visitors::visitor::CoreVerusVisitor::visit_all(visit_dat, parsed_file.clone());
         }
@@ -1816,7 +1818,7 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Opti
     if let Some(expr) = failed_assertion {
         println!("Debug: Attempting to parse failed assertion: {}", expr);
         let parsed_expr = VerusParser::str_to_expr(&expr);
-        
+
         // Handle parsed_expr as needed
         if parsed_expr.is_none() {
             // Handle the case where parsing failed

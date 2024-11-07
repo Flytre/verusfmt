@@ -25,11 +25,17 @@ spec fn is_prime(candidate: nat) -> bool {
     &&& forall|factor: nat| 1 < factor < candidate ==> !divides(factor, candidate)
 }
 
+    spec fn test(value: nat) -> bool {
+	&& true
+    }
+
 fn main() {
     // assert(!is_prime(0));
     // assert(!is_prime(1));
     // assert(is_prime(2));
-    assert(is_prime(3));
+    assert(is_prime(4));
+    assert(test(5));
+    assert(divides(2, 4));    
     // assert(is_prime_F3());
     // assert(divides(2, 6));
     // assert(!is_prime(4));
