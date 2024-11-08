@@ -1689,6 +1689,11 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             rangeBoundsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
             // visit_dat.program = range_dat.program; //todo - clean up
         }
+        "RecursionVisitor" => {
+            // Create an instance of RecursionVisitor with the target_name from CoreDatum
+            let recursionVisitor = visitors::recursion_visitor::RecursionVisitor::new(visit_dat.target_name.clone());
+            recursionVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let simpleVisitor = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
