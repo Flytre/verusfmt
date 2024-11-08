@@ -13,7 +13,6 @@ spec fn triangle(n: nat) -> nat
     } else {
         n + triangle((n - 1) as nat)
     }
-    triangle(n-2)
 }
 // 
 
