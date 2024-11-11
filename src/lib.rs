@@ -23,7 +23,7 @@ lazy_static! {
         fn_map: HashMap::new(),
         fn_calls: HashMap::new(),
         target_name: "".to_string(),
-        finite_bound: 10,
+        finite_bound: 5,
     });
 }
 
@@ -1679,6 +1679,11 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
             loopVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "ModularVisitor" => {
+            // Create an instance of ModularVisitor with the target_name from CoreDatum
+            let modularVisitor = visitors::modular_visitor::ModularVisitor::new(visit_dat.target_name.clone());
+            modularVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "RangeBoundsVisitor" => {
             // Create an instance of RangeBoundsVisitor with the target_name from CoreDatum
             let rangeBoundsVisitor = visitors::range_bounds_visitor::RangeBoundsVisitor::new(visit_dat.target_name.clone());
@@ -1802,6 +1807,8 @@ pub struct RunOptions {
     pub run_rustfmt: bool,
     /// Whether to perform extra configuration for the rustfmt run. Ignored if `run_rustfmt` is false.
     pub rustfmt_config: RustFmtConfig,
+    // finite bound
+    pub finite_bound: Option<usize>
 }
 
 impl Default for RunOptions {
@@ -1810,6 +1817,7 @@ impl Default for RunOptions {
             file_name: None,
             run_rustfmt: true,
             rustfmt_config: Default::default(),
+            finite_bound: None,
         }
     }
 }
@@ -1840,6 +1848,11 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Opti
 
     // Lock the mutex to access the shared state
     let mut visit_dat = VISIT_DATA.lock().unwrap();
+    if let Some(parsed_bound) = opts.finite_bound{
+        println!("Debug: Current Bound: {}", parsed_bound);
+        visit_dat.finite_bound = parsed_bound;
+
+    }
 
     visit_dat.program = "".to_string();
     if let Some(first_fn_name) = visit_dat.fn_calls.keys().next() {

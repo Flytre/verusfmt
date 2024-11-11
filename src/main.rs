@@ -39,6 +39,9 @@ struct Args {
     /// Update verusfmt if an update is available
     #[arg(long = "update")]
     update: bool,
+    /// Finite Bound
+    #[arg(long = "bound")]
+    bound: Option<usize>,
     /// List of visitor names to be used
     #[arg(long = "visitors", value_parser, value_delimiter = ',')]
     visitors: Vec<String>,
@@ -85,18 +88,28 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         };
         
         // Generate the formatted file name for the current visitor
-        let formatted_file_name = format!(
-            "./tempFiles/{}_formatted_{}_{}.rs",
-            cleaned_stem,
-            visitor,
-            current_count // Use the current count to make the filename unique
-        );
-        
+        let formatted_file_name = if let Some(bound) = args.bound {
+            format!(
+                "./tempFiles/{}_formatted_{}_{}_bound_{}.rs",
+                cleaned_stem,
+                visitor,
+                current_count,
+                bound
+            )
+        } else {
+            format!(
+                "./tempFiles/{}_formatted_{}_{}.rs",
+                cleaned_stem,
+                visitor,
+                current_count
+            )
+        };
         // Update run_options to use the new formatted file name
         let run_options = verusfmt::RunOptions {
             file_name: Some(formatted_file_name.clone()), // Use formatted_file_name here
             run_rustfmt: !args.verus_only,
             rustfmt_config: rustfmt_config.clone(),
+            finite_bound: args.bound,
         };
         // Call run with the current output and the visitor name
         let formatted_output = verusfmt::run(&current_output, run_options, visitor, args.failed_assertion.clone())?;
@@ -140,7 +153,9 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             file_name: Some(file.to_string_lossy().into()),
             run_rustfmt: !args.verus_only,
             rustfmt_config: rustfmt_config.clone(),
+            finite_bound: args.bound,
         };
+
         let my_str: &str = "example";
         let reformatted = verusfmt::run(&current_output, run_options, "CoreVerusVisitor", Some(my_str.to_string()))?;
         if current_output == reformatted {
