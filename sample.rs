@@ -33,7 +33,7 @@ fn main() {
     // assert(!is_prime(0));
     // assert(!is_prime(1));
     // assert(is_prime(2));
-    assert(is_prime(4));
+    assert(is_prime(4) == false);
     assert(test(5));
     assert(divides(2, 4));    
     // assert(is_prime_F3());
