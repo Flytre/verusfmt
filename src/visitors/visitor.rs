@@ -77,6 +77,7 @@ impl VerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<T>,
     ) {
+//        println!("VISITING {:?} : {}", pair.as_rule(), pair.as_str());
         let inner_pairs = pair.clone().into_inner();
         if inner_pairs.clone().count() == 0 {
             datum.program_mut().push_str(&format!("{} ", pair.as_str()));
@@ -240,6 +241,22 @@ impl CoreDatum {
     }
 }
 
+pub fn find<'a>(pair: &'a Pair<'a, Rule>, target: Rule) -> Vec<Pair<'a, Rule>> {
+    let mut matches = Vec::new();
+    recursive_find(pair.clone(), target, &mut matches);
+    matches
+}
+
+fn recursive_find<'a>(pair: Pair<'a, Rule>, target: Rule, matches: &mut Vec<Pair<'a, Rule>>) {
+    if pair.as_rule() == target {
+        matches.push(pair.clone());
+    }
+
+    for inner_pair in pair.into_inner() {
+        recursive_find(inner_pair, target, matches);
+    }
+}
+
 pub struct FunctionInlineVisitor {}
 
 impl FunctionInlineVisitor {
@@ -252,6 +269,7 @@ impl FunctionInlineVisitor {
             "verus_macro_use",
             FunctionInlineVisitor::visit_verus_macro_use,
         );
+        handlers.insert("let_stmt", FunctionInlineVisitor::visit_let_stmt);
         handlers
     }
 
@@ -283,69 +301,100 @@ impl FunctionInlineVisitor {
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
     }
 
+    fn visit_let_stmt(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+        let mut identifier: Option<String> = None;
+        let mut value: Option<String> = None;
+        let mut found_eq = false;
+
+        for inner_pair in pair.clone().into_inner() {
+            match inner_pair.as_rule() {
+                Rule::pat => {
+                    let identifiers = find(&inner_pair, Rule::identifier);
+                    if identifiers.len() == 1 {
+                        identifier = Some(identifiers[0].clone().as_str().to_string());
+                    }
+                }
+                Rule::eq_str => {
+                    found_eq = true;
+                }
+                Rule::expr if found_eq => {
+                    let literals = find(&inner_pair, Rule::int_number);
+                    if literals.len() == 1 {
+                        value = Some(literals[0].clone().as_str().to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let (Some(identifier), Some(value)) = (identifier.as_ref(), value.as_ref()) {
+            println!("found variable value = ( {} = {} )", identifier, value);
+        }
+        VerusVisitor::default_visit(datum, pair, handlers);
+    }
+
     fn visit_expr(
         datum: &mut CoreDatum,
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        let mut inner_pairs = pair.clone().into_inner().peekable();
+        let mut inner_pairs = pair.clone().into_inner();
+
+        let mut function_name: Option<String> = None;
+        let mut arguments: Option<String> = None;
 
         while let Some(inner_pair) = inner_pairs.next() {
-            let mut handled = false;
-            if inner_pair.as_rule() == Rule::expr_inner {
-                let mut nested_pairs = inner_pair.clone().into_inner().peekable();
-                while let Some(function_pair) = nested_pairs.next() {
-                    if function_pair.as_rule() == Rule::path_expr_no_generics {
-                        let function_name = function_pair.as_str().to_string();
-
-                        println!("fn_name = {}", function_name);
-
-                        // Check if the next pair is an argument list
-                        if let Some(arg_list_pair) = inner_pairs.peek() {
-                            if arg_list_pair.as_rule() == Rule::arg_list {
-                                // Get the argument list and process it
-                                let args: Vec<String> = arg_list_pair
-                                    .clone()
-                                    .into_inner()
-                                    .map(|p| p.as_str().to_string())
-                                    .collect();
-
-                                if args.len() == 0 {
-                                    continue;
-                                }
-
-                                println!(
-                                    "Function called: {} with args: {:?}",
-                                    function_name, args
-                                );
-
-                                datum
-                                    .fn_calls
-                                    .entry(function_name.clone())
-                                    .or_insert_with(Vec::new)
-                                    .push(args.clone());
-
-                                if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
-                                    // Generate the modified function call
-                                    handled = true;
-                                    let new_call =
-                                        format!("{}_{}()", function_name, args.join("_"));
-
-                                    // Recreate the modified expression
-                                    let updated_expression = new_call.clone();
-                                    let reparsed =
-                                        VerusParser::parse(Rule::expr, updated_expression.as_str());
-                                    VerusVisitor::visit_all(datum, reparsed.unwrap(), handlers);
-                                    inner_pairs.next(); //skip the arg list
-                                }
-                            }
-                        }
+            match inner_pair.as_rule() {
+                Rule::expr_inner => {
+                    let mut nested_pairs = inner_pair.clone().into_inner();
+                    if let Some(function_pair) = nested_pairs
+                        .clone()
+                        .find(|p| p.as_rule() == Rule::path_expr_no_generics)
+                    {
+                        function_name = Some(function_pair.as_str().to_string());
                     }
                 }
+                Rule::arg_list => {
+                    let args: String = inner_pair
+                        .into_inner()
+                        .map(|p| p.as_str().to_string())
+                        .collect();
+                    arguments = Some(args.clone());
+                }
+                _ => {}
             }
-            if !handled {
-                VerusVisitor::visit(datum, inner_pair.clone(), handlers)
+        }
+
+        let mut handled = false;
+        if let (Some(function_name), Some(arguments)) = (function_name, arguments) {
+            println!(
+                "Function called: {} with args: {:?}",
+                function_name, arguments
+            );
+            let args: Vec<String> = arguments
+                .as_str()
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect();
+
+            datum
+                .fn_calls
+                .entry(function_name.clone())
+                .or_insert_with(Vec::new)
+                .push(args.clone());
+
+            if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
+                let new_call = format!("{}_{}()", function_name.as_str(), args.join("_"));
+                let reparsed = VerusParser::parse(Rule::expr, new_call.as_str());
+                VerusVisitor::visit_all(datum, reparsed.unwrap(), handlers);
+                handled = true;
             }
+        }
+        if !handled {
+            VerusVisitor::default_visit(datum, pair, handlers);
         }
     }
 
@@ -385,7 +434,6 @@ impl FunctionInlineVisitor {
             }
         }
         datum.program_mut().push_str("}");
-        println!("AFTER: {}", datum.program());
     }
 }
 
