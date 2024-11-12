@@ -32,11 +32,11 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert(
             "comma_delimited_exprs",
             VerusVisitor::visit_comma_delimited_exprs,
-        ); 
+        );
         handlers.insert(
             "comma_delimited_exprs_for_verus_clauses",
             VerusVisitor::visit_comma_delimited_exprs_for_verus_clauses,
-        ); 
+        );
         handlers.insert("paren_expr_inner", VerusVisitor::visit_paren_expr_inner);
         handlers.insert("arg_list", VerusVisitor::visit_arg_list);
         handlers.insert("COMMENT", VerusVisitor::visit_comment);
@@ -94,7 +94,7 @@ impl VerusVisitor {
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         datum.program_mut().push_str("}\n");
     }
-    
+
     fn visit_verus_macro_use<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
@@ -180,7 +180,7 @@ impl VerusVisitor {
             datum.program_mut().push_str(", \n");
         }
     }
-    
+
     fn visit_arg_list<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
@@ -199,9 +199,9 @@ impl VerusVisitor {
         // Do nothing for comments
         //[TODO] : Comments in the middle of comma separated list:
         //i.e. this example causes an error
-            // ensures f.len() == n, 
-            // f[0] == 0,  // comments in the middle of comma list still not covered
-            // f[n-1] != 0,
+        // ensures f.len() == n,
+        // f[0] == 0,  // comments in the middle of comma list still not covered
+        // f[n-1] != 0,
     }
 
     pub fn visit_all<T: HasProgram>(
@@ -248,7 +248,10 @@ impl FunctionInlineVisitor {
 
         handlers.insert("fn", FunctionInlineVisitor::visit_function);
         handlers.insert("expr", FunctionInlineVisitor::visit_expr);
-        handlers.insert("verus_macro_use", FunctionInlineVisitor::visit_verus_macro_use);
+        handlers.insert(
+            "verus_macro_use",
+            FunctionInlineVisitor::visit_verus_macro_use,
+        );
         handlers
     }
 
@@ -285,60 +288,64 @@ impl FunctionInlineVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        let mut inner_pairs = pair.clone().into_inner();
-
-        let mut function_name: Option<String> = None;
-        let mut arguments: Option<String> = None;
+        let mut inner_pairs = pair.clone().into_inner().peekable();
 
         while let Some(inner_pair) = inner_pairs.next() {
-            match inner_pair.as_rule() {
-                Rule::expr_inner => {
-                    let mut nested_pairs = inner_pair.clone().into_inner();
-                    if let Some(function_pair) = nested_pairs
-                        .clone()
-                        .find(|p| p.as_rule() == Rule::path_expr_no_generics)
-                    {
-                        function_name = Some(function_pair.as_str().to_string());
+            let mut handled = false;
+            if inner_pair.as_rule() == Rule::expr_inner {
+                let mut nested_pairs = inner_pair.clone().into_inner().peekable();
+                while let Some(function_pair) = nested_pairs.next() {
+                    if function_pair.as_rule() == Rule::path_expr_no_generics {
+                        let function_name = function_pair.as_str().to_string();
+
+                        println!("fn_name = {}", function_name);
+
+                        // Check if the next pair is an argument list
+                        if let Some(arg_list_pair) = inner_pairs.peek() {
+                            if arg_list_pair.as_rule() == Rule::arg_list {
+                                // Get the argument list and process it
+                                let args: Vec<String> = arg_list_pair
+                                    .clone()
+                                    .into_inner()
+                                    .map(|p| p.as_str().to_string())
+                                    .collect();
+
+                                if args.len() == 0 {
+                                    continue;
+                                }
+
+                                println!(
+                                    "Function called: {} with args: {:?}",
+                                    function_name, args
+                                );
+
+                                datum
+                                    .fn_calls
+                                    .entry(function_name.clone())
+                                    .or_insert_with(Vec::new)
+                                    .push(args.clone());
+
+                                if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
+                                    // Generate the modified function call
+                                    handled = true;
+                                    let new_call =
+                                        format!("{}_{}()", function_name, args.join("_"));
+
+                                    // Recreate the modified expression
+                                    let updated_expression = new_call.clone();
+                                    let reparsed =
+                                        VerusParser::parse(Rule::expr, updated_expression.as_str());
+                                    VerusVisitor::visit_all(datum, reparsed.unwrap(), handlers);
+                                    inner_pairs.next(); //skip the arg list
+                                }
+                            }
+                        }
                     }
                 }
-                Rule::arg_list => {
-                    let args: String = inner_pair
-                        .into_inner()
-                        .map(|p| p.as_str().to_string())
-                        .collect();
-                    arguments = Some(args.clone());
-                }
-                _ => {}
             }
-        }
-
-        let mut handled = false;
-        if let (Some(function_name), Some(arguments)) = (function_name, arguments) {
-            println!(
-                "Function called: {} with args: {:?}",
-                function_name, arguments
-            );
-            let args: Vec<String> = arguments
-                .as_str()
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .collect();
-
-            datum
-                .fn_calls
-                .entry(function_name.clone())
-                .or_insert_with(Vec::new)
-                .push(args.clone());
-
-            if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
-                let new_call = format!("{}_{}()", function_name.as_str(), args.join("_"));
-                let reparsed = VerusParser::parse(Rule::expr, new_call.as_str());
-		VerusVisitor::visit_all(datum, reparsed.unwrap(), handlers);
-                handled = true;
+            if !handled {
+                VerusVisitor::visit(datum, inner_pair.clone(), handlers)
             }
-        }
-        if !handled {
-            VerusVisitor::default_visit(datum, pair, handlers);
         }
     }
 
@@ -378,6 +385,7 @@ impl FunctionInlineVisitor {
             }
         }
         datum.program_mut().push_str("}");
+        println!("AFTER: {}", datum.program());
     }
 }
 
@@ -404,7 +412,10 @@ impl InlineSingleFunctionCallVisitor {
     fn create_combined_handler_map() -> HandlerMap<InlinerDatum> {
         let mut handlers = HandlerMap::new();
         handlers.insert("fn", InlineSingleFunctionCallVisitor::visit_function);
-        handlers.insert("identifier", InlineSingleFunctionCallVisitor::visit_identifier);
+        handlers.insert(
+            "identifier",
+            InlineSingleFunctionCallVisitor::visit_identifier,
+        );
         handlers
     }
 
@@ -460,7 +471,8 @@ impl InlineSingleFunctionCallVisitor {
     }
 
     pub fn inline_func(datum: &mut InlinerDatum, pairs: Pairs<Rule>) {
-        let handler_map: HandlerMap<InlinerDatum> = InlineSingleFunctionCallVisitor::create_combined_handler_map();
+        let handler_map: HandlerMap<InlinerDatum> =
+            InlineSingleFunctionCallVisitor::create_combined_handler_map();
 
         VerusVisitor::visit_all(
             datum,
