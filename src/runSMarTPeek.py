@@ -213,7 +213,6 @@ def run_cargo(file_path, assertion_code=None, visitors=None, bound=None):
         cargo_command.extend(["--assertion-code", assertion_code])
 
     # Execute the command and capture the output
-    print(f"here {cargo_command}")
     result = subprocess.run(
         cargo_command,
         stdout=subprocess.PIPE,
@@ -335,6 +334,25 @@ def iterativePass(rust_file, mode='Full', bound=None):
             # Only reached if the loop completes without breaking (no failure in any iteration)
             print("Impl verification succeeded after all attempts.")
 
+        print("----------------------------------------\n")
+
+        if mode in ["Full", "Proof"]:
+            print("--------------------")
+            print("Verus Check - Original File")
+            print("--------------------\n")
+       
+            verus_output, verus_returncode = run_verus(rust_file)
+            status, assertion_code, failure_type = handle_verus_output(verus_output)
+        
+            if assertion_code:
+                print("--------------------")
+                print("Finitization (proof) Step")
+                print("--------------------\n")
+                for i in range(1, bound + 1):
+                    print(f"Running Cargo with bound = {i}")
+                    run_cargo(rust_file, assertion_code, bound=i)  # Pass the current bound iteration value
+                    run_verus_on_finitized_system(rust_file, "Proof", bound=i)
+                    # status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only", bound=i)
 
 
 
