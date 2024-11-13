@@ -33,6 +33,8 @@ fn main() {
     // assert(!is_prime(0));
     // assert(!is_prime(1));
     // assert(is_prime(2));
+    let u: u8 = 1u8;
+    assert(is_prime(u));
     assert(is_prime(4));
     assert(test(5));
     assert(divides(2, 4));    

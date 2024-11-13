@@ -32,11 +32,11 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert(
             "comma_delimited_exprs",
             VerusVisitor::visit_comma_delimited_exprs,
-        ); 
+        );
         handlers.insert(
             "comma_delimited_exprs_for_verus_clauses",
             VerusVisitor::visit_comma_delimited_exprs_for_verus_clauses,
-        ); 
+        );
         handlers.insert("paren_expr_inner", VerusVisitor::visit_paren_expr_inner);
         handlers.insert("arg_list", VerusVisitor::visit_arg_list);
         handlers.insert("COMMENT", VerusVisitor::visit_comment);
@@ -77,6 +77,7 @@ impl VerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<T>,
     ) {
+//        println!("VISITING {:?} : {}", pair.as_rule(), pair.as_str());
         let inner_pairs = pair.clone().into_inner();
         if inner_pairs.clone().count() == 0 {
             datum.program_mut().push_str(&format!("{} ", pair.as_str()));
@@ -94,7 +95,7 @@ impl VerusVisitor {
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         datum.program_mut().push_str("}\n");
     }
-    
+
     fn visit_verus_macro_use<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
@@ -180,7 +181,7 @@ impl VerusVisitor {
             datum.program_mut().push_str(", \n");
         }
     }
-    
+
     fn visit_arg_list<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
@@ -199,9 +200,9 @@ impl VerusVisitor {
         // Do nothing for comments
         //[TODO] : Comments in the middle of comma separated list:
         //i.e. this example causes an error
-            // ensures f.len() == n, 
-            // f[0] == 0,  // comments in the middle of comma list still not covered
-            // f[n-1] != 0,
+        // ensures f.len() == n,
+        // f[0] == 0,  // comments in the middle of comma list still not covered
+        // f[n-1] != 0,
     }
 
     pub fn visit_all<T: HasProgram>(
@@ -240,6 +241,22 @@ impl CoreDatum {
     }
 }
 
+pub fn find<'a>(pair: &'a Pair<'a, Rule>, target: Rule) -> Vec<Pair<'a, Rule>> {
+    let mut matches = Vec::new();
+    recursive_find(pair.clone(), target, &mut matches);
+    matches
+}
+
+fn recursive_find<'a>(pair: Pair<'a, Rule>, target: Rule, matches: &mut Vec<Pair<'a, Rule>>) {
+    if pair.as_rule() == target {
+        matches.push(pair.clone());
+    }
+
+    for inner_pair in pair.into_inner() {
+        recursive_find(inner_pair, target, matches);
+    }
+}
+
 pub struct FunctionInlineVisitor {}
 
 impl FunctionInlineVisitor {
@@ -248,7 +265,11 @@ impl FunctionInlineVisitor {
 
         handlers.insert("fn", FunctionInlineVisitor::visit_function);
         handlers.insert("expr", FunctionInlineVisitor::visit_expr);
-        handlers.insert("verus_macro_use", FunctionInlineVisitor::visit_verus_macro_use);
+        handlers.insert(
+            "verus_macro_use",
+            FunctionInlineVisitor::visit_verus_macro_use,
+        );
+        handlers.insert("let_stmt", FunctionInlineVisitor::visit_let_stmt);
         handlers
     }
 
@@ -278,6 +299,41 @@ impl FunctionInlineVisitor {
             .fn_map
             .insert(name.to_string(), pair.as_str().to_string());
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+    }
+
+    fn visit_let_stmt(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+        let mut identifier: Option<String> = None;
+        let mut value: Option<String> = None;
+        let mut found_eq = false;
+
+        for inner_pair in pair.clone().into_inner() {
+            match inner_pair.as_rule() {
+                Rule::pat => {
+                    let identifiers = find(&inner_pair, Rule::identifier);
+                    if identifiers.len() == 1 {
+                        identifier = Some(identifiers[0].clone().as_str().to_string());
+                    }
+                }
+                Rule::eq_str => {
+                    found_eq = true;
+                }
+                Rule::expr if found_eq => {
+                    let literals = find(&inner_pair, Rule::int_number);
+                    if literals.len() == 1 {
+                        value = Some(literals[0].clone().as_str().to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let (Some(identifier), Some(value)) = (identifier.as_ref(), value.as_ref()) {
+            println!("found variable value = ( {} = {} )", identifier, value);
+        }
+        VerusVisitor::default_visit(datum, pair, handlers);
     }
 
     fn visit_expr(
@@ -333,7 +389,7 @@ impl FunctionInlineVisitor {
             if args.iter().all(|arg| arg.parse::<i32>().is_ok()) {
                 let new_call = format!("{}_{}()", function_name.as_str(), args.join("_"));
                 let reparsed = VerusParser::parse(Rule::expr, new_call.as_str());
-		VerusVisitor::visit_all(datum, reparsed.unwrap(), handlers);
+                VerusVisitor::visit_all(datum, reparsed.unwrap(), handlers);
                 handled = true;
             }
         }
@@ -404,7 +460,10 @@ impl InlineSingleFunctionCallVisitor {
     fn create_combined_handler_map() -> HandlerMap<InlinerDatum> {
         let mut handlers = HandlerMap::new();
         handlers.insert("fn", InlineSingleFunctionCallVisitor::visit_function);
-        handlers.insert("identifier", InlineSingleFunctionCallVisitor::visit_identifier);
+        handlers.insert(
+            "identifier",
+            InlineSingleFunctionCallVisitor::visit_identifier,
+        );
         handlers
     }
 
@@ -460,7 +519,8 @@ impl InlineSingleFunctionCallVisitor {
     }
 
     pub fn inline_func(datum: &mut InlinerDatum, pairs: Pairs<Rule>) {
-        let handler_map: HandlerMap<InlinerDatum> = InlineSingleFunctionCallVisitor::create_combined_handler_map();
+        let handler_map: HandlerMap<InlinerDatum> =
+            InlineSingleFunctionCallVisitor::create_combined_handler_map();
 
         VerusVisitor::visit_all(
             datum,
