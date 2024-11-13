@@ -14,20 +14,20 @@ lazy_static! {
 }
 
 // Define a new struct for your custom visitor
-pub struct ModularVisitor {
-    target_name: String, // Store target_name within ModularVisitor
+pub struct ModularFlattenerVisitor {
+    target_name: String, // Store target_name within ModularFlattenerVisitor
 }
 
-impl ModularVisitor {
+impl ModularFlattenerVisitor {
     pub fn new(target_name: String) -> Self {
-        ModularVisitor { target_name } // Return an instance of ModularVisitor
+        ModularFlattenerVisitor { target_name } // Return an instance of ModularFlattenerVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
         let mut handlers = HandlerMap::new();
-        handlers.insert("fn", ModularVisitor::visit_function);
-        handlers.insert("verus_macro_use", ModularVisitor::visit_verus_macro_use);
-        handlers.insert("expr", ModularVisitor::visit_expr);
+        handlers.insert("fn", ModularFlattenerVisitor::visit_function);
+        handlers.insert("verus_macro_use", ModularFlattenerVisitor::visit_verus_macro_use);
+        handlers.insert("expr", ModularFlattenerVisitor::visit_expr);
 
         handlers
     }
@@ -159,6 +159,8 @@ impl ModularVisitor {
         }
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
     }
+
+
     
     fn replace_params_with_args(function_body: &mut String, param_names: &Vec<String>, args: &Vec<String>) {
         for (param, arg) in param_names.iter().zip(args.iter()) {

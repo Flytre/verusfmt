@@ -1,6 +1,6 @@
 pub mod visitor;
 pub mod loop_visitor;
-pub mod modular_visitor;
+pub mod modular_flattener_visitor;
 pub mod recursion_visitor;
 pub mod simple_visitor;
 pub mod range_bounds_visitor;

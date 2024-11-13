@@ -1679,10 +1679,10 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
             loopVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
-        "ModularVisitor" => {
-            // Create an instance of ModularVisitor with the target_name from CoreDatum
-            let modularVisitor = visitors::modular_visitor::ModularVisitor::new(visit_dat.target_name.clone());
-            modularVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        "ModularFlattenerVisitor" => {
+            // Create an instance of ModularFlattenerVisitor with the target_name from CoreDatum
+            let modularFlattenerVisitor = visitors::modular_flattener_visitor::ModularFlattenerVisitor::new(visit_dat.target_name.clone());
+            modularFlattenerVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "RangeBoundsVisitor" => {
             // Create an instance of RangeBoundsVisitor with the target_name from CoreDatum
