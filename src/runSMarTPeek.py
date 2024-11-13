@@ -10,7 +10,7 @@ import argparse
 VERUS_PATH = os.getenv("VERUS_PATH")
 
 # Visitor list verusFmt
-VISITORS = "CoreVerusVisitor,SimpleVisitor,QuantifierVisitor,LoopVisitor,RangeBoundsVisitor".split(',')
+VISITORS = "QuantifierVisitor,LoopVisitor,RangeBoundsVisitor".split(',')
 
 
 def run_verus(file_path):
@@ -53,22 +53,30 @@ def run_verus(file_path):
         print(f"An error occurred: {e}")
         return None, temp_file_path
 
-def run_verus_on_finitized_system(rust_file, type):
-    print("--------------------")
-    print(f"Running Verus - {type} - On Finitized System")
-    print("--------------------\n")
+def run_verus_on_finitized_system(rust_file, type, bound=None):
+    if bound is None:
+        print("--------------------")
+        print(f"Running Verus - {type} - On Finitized System")
+        print("--------------------\n")
+    else:
+        print("--------------------")
+        print(f"Running Verus - {type} - On Finitized System -- BOUND = {bound}")
+        print("--------------------\n")
 
     # Get the last visitor and its ID for the new Verus run
     if VISITORS:
         last_visitor = VISITORS[-1].strip()  # Get the last visitor
         visitor_count = VISITORS.count(last_visitor) - 1  # Count occurrences, adjust to start at 0
         
-        # Create a new filename for Verus based on visitor and count
+        # Create a new filename based on visitor, count, and optionally bound
         input_file_stem = Path(rust_file).stem  # Get the stem of the input file
-        new_file_name = f"{input_file_stem}_formatted_{last_visitor}_{visitor_count}.rs"
-        # Create the new file path
+        if bound is not None:
+            new_file_name = f"{input_file_stem}_formatted_{last_visitor}_{visitor_count}_bound_{bound}.rs"
+        else:
+            new_file_name = f"{input_file_stem}_formatted_{last_visitor}_{visitor_count}.rs"
+        
+        # Construct the new file path
         new_file_path = Path(rust_file).parent / new_file_name
-        # Add "./tempFiles" to the path only if it's not already included
         if not str(new_file_path).startswith("tempFiles"):
             new_file_path = Path(rust_file).parent / "tempFiles" / new_file_name
         
@@ -77,16 +85,18 @@ def run_verus_on_finitized_system(rust_file, type):
             print(f"Error: The file '{new_file_path}' does not exist. Please check if it was created successfully.")
             return None, None, None  # Return None if the file doesn't exist
             
-        # Run Verus again with the new visitor file
+        # Run Verus with the new visitor file
         print(f"Running Verus on: {new_file_path}")
         output, returncode = run_verus(new_file_path)
         
-        # Analyze the output of the new Verus run
+        # Analyze the output of the Verus run
         status, assertion_code, failure_type = handle_verus_output(output) 
         if assertion_code:
             print(f"Failed with assertion code = {assertion_code}")
-
+    
+        print("--------------------\n")
         return status, assertion_code, failure_type  # Return the results for further processing
+
 
 
 def handle_verus_output(output):
@@ -181,7 +191,7 @@ def analyze_output(output):
 
 
 
-def run_cargo(file_path, assertion_code=None, visitors=None):
+def run_cargo(file_path, assertion_code=None, visitors=None, bound=None):
     file_path_str = str(file_path) 
 
     # Join VISITORS list into a comma-separated string if visitors are provided
@@ -192,6 +202,9 @@ def run_cargo(file_path, assertion_code=None, visitors=None):
 
     # Build the command arguments, including the optional assertion code
     cargo_command = ["cargo", "run", file_path_str, "--visitors", visitors_string]
+    # Add bound to the command if it's provided
+    if bound is not None:
+        cargo_command.extend(["--bound", str(bound)])
 
     # If assertion_code is provided, add it to the command
     if assertion_code:
@@ -214,83 +227,165 @@ def run_cargo(file_path, assertion_code=None, visitors=None):
 
 
 
-def main(rust_file, mode='Full'):
-    if not Path(rust_file).is_file():
-        print(f"Error: File '{rust_file}' not found.")
-        return
-    if(mode == "Full" or mode == "Impl"):
-        # First Step (Provers Dilema) Step: Run Cargo with only StripProofVisitor
+def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
+    if mode in ["Full", "Impl"]:
         print("--------------------")
         print("Running Cargo with StripProofVisitor")
         print("--------------------\n")
-
-        run_cargo(rust_file, visitors=["StripProofVisitor"])  # Passing StripProofVisitor
+        
+        run_cargo(rust_file, visitors=["StripProofVisitor"])
         
         print("--------------------")
         print("Verus Check -- Stripped Impl")
         print("--------------------\n")
 
-        # Define the new file name and path for the formatted file
-        input_file_stem = Path(rust_file).stem  # Get the stem of the input file
+        input_file_stem = Path(rust_file).stem
         new_file_name = f"{input_file_stem}_formatted_StripProofVisitor_0.rs"
-        new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name  # Ensure the new file path is correct
+        new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name
 
-        # Check if the new file exists before running Verus on it
         if not new_file_path.is_file():
-            print(f"Error: The file '{new_file_path}' does not exist. Please check if it was created successfully.")
+            print(f"Error: The file '{new_file_path}' does not exist.")
             return
         
         # Run Verus on the formatted file
         print(f"Running Verus on: {new_file_path}")
         verus_output, verus_returncode = run_verus(new_file_path)
-        
-        # Analyze the output of the Verus run
-        status, assertion_code, failure_type = handle_verus_output(verus_output) 
+        status, assertion_code, failure_type = handle_verus_output(verus_output)
 
-        if(not(status == "Success" and assertion_code == None)):
+        if not (status == "Success" and assertion_code is None):
             print("Finitizing Impl..")
             print("\n--------------------")
             print("Finitization (Impl) Step")
             print("--------------------\n")
+            run_cargo(new_file_path, assertion_code)
+            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only")
 
-            run_cargo(new_file_path,assertion_code) 
-
-            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only") 
-            if(status == "Failure"):
+            if status == "Failure":
                 print("IMPL IS INCORRECT")
                 return
 
     print("----------------------------------------\n")
 
-    if(mode == "Full" or mode == "Proof"):
+    if mode in ["Full", "Proof"]:
         print("--------------------")
         print("Verus Check - Original File")
         print("--------------------\n")
 
-        # Run Verus on the initial file
         verus_output, verus_returncode = run_verus(rust_file)
-        status, assertion_code, failure_type = handle_verus_output(verus_output) 
-        # Run Cargo with visitors if verification fails
-        if assertion_code:  # Only proceed if there is an assertion code
+        status, assertion_code, failure_type = handle_verus_output(verus_output)
+        
+        if assertion_code:
             print("--------------------")
             print("Finitization (proof) Step")
             print("--------------------\n")
-
-            run_cargo(rust_file, assertion_code)  # Use the captured assertion_code
-
+            run_cargo(rust_file, assertion_code)
             run_verus_on_finitized_system(rust_file, "Proof")
 
 
 
+def iterativePass(rust_file, mode='Full', bound=None):
+    print("Starting iterative verification...")
+    if mode in ["Full", "Impl"]:
+        print("--------------------")
+        print("Running Cargo with StripProofVisitor")
+        print("--------------------\n")
+        
+        run_cargo(rust_file, visitors=["StripProofVisitor"])
+        
+        print("--------------------")
+        print("Verus Check -- Stripped Impl")
+        print("--------------------\n")
+
+        input_file_stem = Path(rust_file).stem
+        new_file_name = f"{input_file_stem}_formatted_StripProofVisitor_0.rs"
+        new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name
+
+        if not new_file_path.is_file():
+            print(f"Error: The file '{new_file_path}' does not exist.")
+            return
+        
+
+        # Run Verus on the formatted file
+        print(f"Running Verus on: {new_file_path}")
+        verus_output, verus_returncode = run_verus(new_file_path)
+        status, assertion_code, failure_type = handle_verus_output(verus_output)
+
+        if not (status == "Success" and assertion_code is None):
+            print("Finitizing Impl..")
+            print("\n--------------------")
+            print("Finitization (Impl) Step")
+            print("--------------------\n")
+
+            # Loop from 1 to bound, passing each loop value to run_cargo
+        for i in range(1, bound + 1):
+            print(f"Running Cargo with bound = {i}")
+            run_cargo(new_file_path, assertion_code, bound=i)  # Pass the current bound iteration value
+            
+            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only", bound=i)
+            
+            # Check the status after each run to exit early if verification fails
+            if status == "Failure":
+                print("IMPL IS INCORRECT")
+                break  # Exit the loop on failure
+            elif status == "Success":
+                print(f"Attempt {i} succeeded. Continuing to next iteration...")
+
+        else:
+            # Only reached if the loop completes without breaking (no failure in any iteration)
+            print("Impl verification succeeded after all attempts.")
+
+        print("----------------------------------------\n")
+
+        if mode in ["Full", "Proof"]:
+            print("--------------------")
+            print("Verus Check - Original File")
+            print("--------------------\n")
+       
+            verus_output, verus_returncode = run_verus(rust_file)
+            status, assertion_code, failure_type = handle_verus_output(verus_output)
+        
+            if assertion_code:
+                print("--------------------")
+                print("Finitization (proof) Step")
+                print("--------------------\n")
+                for i in range(1, bound + 1):
+                    print(f"Running Cargo with bound = {i}")
+                    run_cargo(rust_file, assertion_code, bound=i)  # Pass the current bound iteration value
+                    run_verus_on_finitized_system(rust_file, "Proof", bound=i)
+                    # status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only", bound=i)
+
+
+
+    
+
+def main(rust_file, mode='Full', bound=None, iterative=False):
+    if not Path(rust_file).is_file():
+        print(f"Error: File '{rust_file}' not found.")
+        return
+    
+    if iterative:
+        iterativePass(rust_file, mode=mode, bound=bound)
+    else:
+        singleFullPass(rust_file, mode=mode, bound=bound, iterative=iterative)
+
 
 
 if __name__ == "__main__":
- # Set up command-line argument parsing
+    # Set up command-line argument parsing
     parser = argparse.ArgumentParser(description='Verify Rust files using Verus.')
     parser.add_argument('--mode', type=str, choices=['Full', 'Proof', 'Impl'], default='Full', 
                         help='Mode of verification (default: Full).')
-    
+    parser.add_argument('--bound', type=int, default=None, 
+                        help='Optional bound parameter for verification (default: None).')
+    parser.add_argument('--iterative', action='store_true', 
+                        help='Enable iterative mode for verification (requires --bound).')
+
     # Collect all arguments except the last one as input
     args, input_file = parser.parse_known_args()  # Parse the arguments
 
-    main(input_file[-1], mode=args.mode)  # Pass the last argument as input file and mode
+    # Check if --iterative is specified without --bound
+    if args.iterative and args.bound is None:
+        parser.error("--iterative requires --bound to be specified.")
+
+    # Pass the arguments to main
+    main(input_file[-1], mode=args.mode, bound=args.bound, iterative=args.iterative)
