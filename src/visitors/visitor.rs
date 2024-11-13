@@ -77,7 +77,7 @@ impl VerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<T>,
     ) {
-//        println!("VISITING {:?} : {}", pair.as_rule(), pair.as_str());
+        //        println!("VISITING {:?} : {}", pair.as_rule(), pair.as_str());
         let inner_pairs = pair.clone().into_inner();
         if inner_pairs.clone().count() == 0 {
             datum.program_mut().push_str(&format!("{} ", pair.as_str()));
@@ -223,6 +223,8 @@ pub struct CoreDatum {
     pub fn_calls: HashMap<String, Vec<Vec<String>>>,
     pub target_name: String, // Add target_name
     pub finite_bound: usize,
+    pub variable_map: HashMap<String, String>,
+    pub variable_stack: Vec<Vec<String>>,
 }
 
 // Implement HasProgram for CoreDatum
@@ -270,6 +272,7 @@ impl FunctionInlineVisitor {
             FunctionInlineVisitor::visit_verus_macro_use,
         );
         handlers.insert("let_stmt", FunctionInlineVisitor::visit_let_stmt);
+        handlers.insert("fn_block_expr", FunctionInlineVisitor::visit_fn_block_expr);
         handlers
     }
 
@@ -331,7 +334,17 @@ impl FunctionInlineVisitor {
             }
         }
         if let (Some(identifier), Some(value)) = (identifier.as_ref(), value.as_ref()) {
-            println!("found variable value = ( {} = {} )", identifier, value);
+            println!(
+                "Found variable value {} = {}",
+                identifier.clone(),
+                value.clone()
+            );
+            datum.variable_map.insert(identifier.clone(), value.clone());
+            datum
+                .variable_stack
+                .last_mut()
+                .unwrap()
+                .push(identifier.clone());
         }
         VerusVisitor::default_visit(datum, pair, handlers);
     }
@@ -377,7 +390,10 @@ impl FunctionInlineVisitor {
             let args: Vec<String> = arguments
                 .as_str()
                 .split(',')
-                .map(|s| s.trim().to_string())
+                .map(|s| {
+                    let trimmed = s.trim().to_string();
+                    datum.variable_map.get(&trimmed).cloned().unwrap_or(trimmed)
+                })
                 .collect();
 
             datum
@@ -403,6 +419,7 @@ impl FunctionInlineVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
+        datum.variable_stack.push(vec![]);
         datum.program_mut().push_str("verus!{\n");
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         println!(
@@ -434,6 +451,21 @@ impl FunctionInlineVisitor {
             }
         }
         datum.program_mut().push_str("}");
+    }
+
+    fn visit_fn_block_expr(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+        datum.program_mut().push_str("\n {");
+        datum.variable_stack.push(vec![]);
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("\n } \n");
+        for entry in datum.variable_stack.last_mut().unwrap() {
+            datum.variable_map.remove(entry);
+        }
+        datum.variable_stack.pop();
     }
 }
 
