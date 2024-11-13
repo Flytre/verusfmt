@@ -24,6 +24,8 @@ lazy_static! {
         fn_calls: HashMap::new(),
         target_name: "".to_string(),
         finite_bound: 10,
+	variable_stack: Vec::new(),
+	variable_map: HashMap::new(),
     });
 }
 
