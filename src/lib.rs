@@ -79,6 +79,12 @@ impl VerusParser {
             .and_then(|mut pairs| pairs.next());
         parsed_func
     }
+pub fn str_to_fn_qualifier(expr: &str) -> (Option<Pair<'_, Rule>>) {
+        let parsed_expr = Self::parse(Rule::fn_qualifier, expr)
+            .ok()
+            .and_then(|mut pairs| pairs.next());
+        parsed_expr
+    }
 
 }
 // When in doubt, we should generally try to stick to Rust style guidelines:
@@ -1681,7 +1687,7 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
         }
         "ModularFlattenerVisitor" => {
             // Create an instance of ModularFlattenerVisitor with the target_name from CoreDatum
-            let modularFlattenerVisitor = visitors::modular_flattener_visitor::ModularFlattenerVisitor::new(visit_dat.target_name.clone());
+            let modularFlattenerVisitor = visitors::modular_flattener_visitor::ModularFlattenerVisitor::new();
             modularFlattenerVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "RangeBoundsVisitor" => {
