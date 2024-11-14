@@ -48,6 +48,9 @@ struct Args {
     /// Assertion code to identify failure (optional, for analysis)
     #[arg(long = "assertion-code")]
     failed_assertion: Option<String>,
+    /// Flag to write "failed" parsed verus code to a file ./reconstructed_output.rs
+    #[arg(long = "print-failed", default_value_t = false)]
+    print_failed: bool,
 }
 fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
     let unparsed_file = fs::read_to_string(file).into_diagnostic()?;
@@ -110,6 +113,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             run_rustfmt: !args.verus_only,
             rustfmt_config: rustfmt_config.clone(),
             finite_bound: args.bound,
+            print_failed: args.print_failed,
         };
         // Call run with the current output and the visitor name
         let formatted_output = verusfmt::run(&current_output, run_options, visitor, args.failed_assertion.clone())?;
@@ -154,6 +158,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             run_rustfmt: !args.verus_only,
             rustfmt_config: rustfmt_config.clone(),
             finite_bound: args.bound,
+            print_failed: args.print_failed,
         };
 
         let my_str: &str = "example";

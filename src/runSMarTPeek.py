@@ -10,7 +10,7 @@ import argparse
 VERUS_PATH = os.getenv("VERUS_PATH")
 
 # Visitor list verusFmt
-VISITORS = "QuantifierVisitor,LoopVisitor,RangeBoundsVisitor".split(',')
+VISITORS = "QuantifierVisitor,LoopVisitor,RangeBoundsVisitor,ModularFlattenerVisitor".split(',')
 
 
 def run_verus(file_path):
@@ -76,9 +76,18 @@ def run_verus_on_finitized_system(rust_file, type, bound=None):
             new_file_name = f"{input_file_stem}_formatted_{last_visitor}_{visitor_count}.rs"
         
         # Construct the new file path
-        new_file_path = Path(rust_file).parent / new_file_name
-        if not str(new_file_path).startswith("tempFiles"):
-            new_file_path = Path(rust_file).parent / "tempFiles" / new_file_name
+        new_file_path = Path.cwd() / "tempFiles" / new_file_name
+        # if not str(new_file_path).startswith("tempFiles"):
+        #     new_file_path = Path(rust_file).parent / "tempFiles" / new_file_name
+
+        # print(f"here {new_file_path}")
+        # Set the path to ./tempFiles in the current working directory (pwd)
+        # temp_files_dir = Path.cwd() / "tempFiles"
+        # temp_files_dir.mkdir(exist_ok=True)  # Ensure the tempFiles directory exists
+        # input_file_stem = Path(rust_file).stem
+        # new_file_name = f"{input_file_stem}_formatted_StripProofVisitor_0.rs"
+
+        # new_file_path = temp_files_dir / new_file_name
         
         # Check if the new file exists before running Verus on it
         if not new_file_path.is_file():
@@ -239,9 +248,14 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
         print("Verus Check -- Stripped Impl")
         print("--------------------\n")
 
+        # Set the path to ./tempFiles in the current working directory (pwd)
+        temp_files_dir = Path.cwd() / "tempFiles"
+        temp_files_dir.mkdir(exist_ok=True)  # Ensure the tempFiles directory exists
         input_file_stem = Path(rust_file).stem
         new_file_name = f"{input_file_stem}_formatted_StripProofVisitor_0.rs"
-        new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name
+
+        new_file_path = temp_files_dir / new_file_name
+
 
         if not new_file_path.is_file():
             print(f"Error: The file '{new_file_path}' does not exist.")
@@ -278,6 +292,7 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
             print("--------------------")
             print("Finitization (proof) Step")
             print("--------------------\n")
+
             run_cargo(rust_file, assertion_code)
             run_verus_on_finitized_system(rust_file, "Proof")
 
@@ -296,9 +311,13 @@ def iterativePass(rust_file, mode='Full', bound=None):
         print("Verus Check -- Stripped Impl")
         print("--------------------\n")
 
+        # Set the path to ./tempFiles in the current working directory (pwd)
+        temp_files_dir = Path.cwd() / "tempFiles"
+        temp_files_dir.mkdir(exist_ok=True)  # Ensure the tempFiles directory exists
         input_file_stem = Path(rust_file).stem
         new_file_name = f"{input_file_stem}_formatted_StripProofVisitor_0.rs"
-        new_file_path = Path(rust_file).parent / "./tempFiles" / new_file_name
+
+        new_file_path = temp_files_dir / new_file_name
 
         if not new_file_path.is_file():
             print(f"Error: The file '{new_file_path}' does not exist.")

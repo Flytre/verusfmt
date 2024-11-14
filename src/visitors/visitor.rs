@@ -29,6 +29,7 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("fn_block_expr", VerusVisitor::visit_fn_block_expr);
         handlers.insert("stmt_list", VerusVisitor::visit_stmt_list);
         handlers.insert("closure_param_list", VerusVisitor::visit_closure_param_list);
+        handlers.insert("generic_param_list", VerusVisitor::visit_generic_param_list);
         handlers.insert(
             "comma_delimited_exprs",
             VerusVisitor::visit_comma_delimited_exprs,
@@ -63,7 +64,7 @@ pub struct VerusVisitor;
 
 impl VerusVisitor {
     fn visit<T: HasProgram>(datum: &mut T, pair: Pair<Rule>, handlers: &dyn HandlerInterface<T>) {
-        // println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
+        println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
         let rule_name = format!("{:?}", pair.as_rule());
         if let Some(handler) = handlers.get_handler(&rule_name) {
             handler(datum, pair, handlers);
@@ -105,6 +106,17 @@ impl VerusVisitor {
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         datum.program_mut().push_str("}\n");
     }
+
+    fn visit_generic_param_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("<");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str(">");
+    }
+
 
     fn visit_param_list<T: HasProgram>(
         datum: &mut T,
@@ -177,8 +189,15 @@ impl VerusVisitor {
         handlers: &dyn HandlerInterface<T>,
     ) {
         for inner_pair in pair.into_inner() {
-            VerusVisitor::visit(datum, inner_pair, handlers);
-            datum.program_mut().push_str(", \n");
+            match inner_pair.as_rule() {
+                Rule::COMMENT => {
+                    // dont add "extra" comma if element is comment
+                }
+                _ => {
+                    VerusVisitor::visit(datum, inner_pair, handlers);
+                    datum.program_mut().push_str(", \n");
+                }
+            }           
         }
     }
 
