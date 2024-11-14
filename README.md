@@ -6,6 +6,11 @@
 i.e.
 `cargo run sample.rs --visitors CoreVerusVisitor,SimpleVisitor`
 
+#### Additional Command Line Arguments
+* --bound [int]: sets the finite bound to specified int
+* --failed_assertion [str]: passes in the failed assertion in string format [WIP - can be used as starting point for finitiziation]
+* --print_failed: flag to write un-parsed formatted verus code to "./reconstructed_output.rs" 
+
 ## Running End-To-End
 
 The python script `./src/runSMarTPeek.py [verus file]` will run verus on the target verus file. If the verification fails, it will then run this tool to finitize the specified verus file. After the finitization is complete, verus will again be run on the finite representation.
@@ -24,6 +29,10 @@ A simple working example can be run with the following: `./src/runSMarTPeek.py s
 
 `runSMarTPeek.py` has an optional cmdline arg `mode = [Full(default), Proof, Impl]` Specifiying one of these will dictate if just impl is checked, just the proof, or both.
 i.e. `./src/runSMarTPeek.py --mode Proof simple_end_to_end.rs`
+
+#### Additional Command Line Arguments
+* --bound [int]: concrete upper bound that will be passed to fmt tool
+*  --iterative: flag to iteratively check finitezed file with bounds 1..bound (only works if --bound is also set)
 
 ---
 
