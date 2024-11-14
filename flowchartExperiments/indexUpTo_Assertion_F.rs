@@ -9,6 +9,10 @@ use prelude::*;
 use multiset::*;
 verus! {
 
+// IMPL is correct But proof fails (assertion)
+// Impl check -- succeeds
+// Proof check -- fails
+// Bound = 5
 
 
 
