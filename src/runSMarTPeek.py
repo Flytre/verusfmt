@@ -5,11 +5,12 @@ import sys
 import os
 from pathlib import Path
 import argparse
+import time  
 
 # Specify the path to the Verus executable here
 VERUS_PATH = os.getenv("VERUS_PATH")
 
-# Visitor list verusFmt
+global VISITORS
 VISITORS = "QuantifierVisitor,LoopVisitor,RangeBoundsVisitor,ModularFlattenerVisitor".split(',')
 
 
@@ -28,7 +29,7 @@ def run_verus(file_path):
     print(f"verus log created at: {temp_file_path}")
     try:
         result = subprocess.run(
-            [VERUS_PATH, "--log-all", file_path],
+            [VERUS_PATH, "--log-all","--time-expanded", file_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -112,8 +113,8 @@ def handle_verus_output(output):
     if output is None:
         return None, None, None  # Return None for all if output is None
 
-    status, file_name, line_number, assertion_code, failure_type = analyze_output(output)
-
+    status, file_name, line_number, assertion_code, failure_type, total_time = analyze_output(output)
+    print(f"total time = {total_time}")
     if status == "Failure" and (assertion_code == "Aborted due to previous errors with no verified results." or assertion_code == "Type Mismatch"):
         print("Verification aborted due to previous errors. Exiting script.")
         return status, None, None  # Return status and None for others to indicate failure
@@ -133,8 +134,6 @@ def handle_verus_output(output):
     return status, assertion_code, failure_type  # Return status, assertion_code, and failure_type
 
 
-
-        
 def analyze_output(output):
     # Check for aborting due to previous errors with no verification results
     abort_pattern = re.compile(r"error: aborting due to \d+ previous error[s]*;")
@@ -154,11 +153,9 @@ def analyze_output(output):
         file_name = match.group(1).strip()
         line_number = match.group(2).strip()
         error_detail = match.group(3).strip()  # Extracts detail of the mismatched type message
-        return "Failure", file_name, line_number, error_detail, "Type Mismatch"
+        return "Failure", file_name, line_number, error_detail, "Type Mismatch", None
 
-    # Check for successful verification based on "0 errors" in the output
-    if "0 errors" in output:
-        return "Success", None, None, None, None
+
 
     # Define patterns for assertion, postcondition, and loop invariant errors
     error_patterns = {
@@ -176,27 +173,29 @@ def analyze_output(output):
         )
     }
 
-    # Initialize to find the first error occurrence
-    first_error_type, first_error_match, first_error_position = None, None, float('inf')
+    # Check for total time
+    total_time_pattern = re.compile(r"total-time:\s+(\d+)\s+ms")
+    time_match = total_time_pattern.search(output)
+    total_time = time_match.group(1) if time_match else "N/A"
 
-    # Search for each error type and determine the earliest one
+    # If no specific error found, default to success
+    if not any(pattern.search(output) for pattern in error_patterns.values()):
+        return "Success", None, None, None, None, total_time
+
+    # Check for successful verification based on "0 errors" in the output
+    if "0 errors" in output:
+        return "Success", None, None, None, None, None
+    
+    # Check for specific errors
     for error_type, pattern in error_patterns.items():
         match = pattern.search(output)
-        if match and match.start() < first_error_position:
-            first_error_type = error_type
-            first_error_match = match
-            first_error_position = match.start()
+        if match:
+            file_name = match.group(1).strip()
+            line_number = match.group(2).strip()
+            error_detail = match.group(3).strip()
+            return "Failure", file_name, line_number, error_detail, error_type, total_time
 
-    # Return the earliest matched error type
-    if first_error_match:
-        file_name = first_error_match.group(1).strip()
-        line_number = first_error_match.group(2).strip()
-        error_code = first_error_match.group(3).strip().split('|')[-1].strip()
-        return "Failure", file_name, line_number, error_code, first_error_type
-
-    # Return "unknown verification error" if no matches were found
-    return "Failure", None, None, "Unknown verification error.", None
-
+    return "Unknown", None, None, None, None, total_time
 
 
 
@@ -222,12 +221,18 @@ def run_cargo(file_path, assertion_code=None, visitors=None, bound=None):
         cargo_command.extend(["--assertion-code", assertion_code])
 
     # Execute the command and capture the output
+    start_time = time.time()  # Record the start time
     result = subprocess.run(
         cargo_command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
     )
+    end_time = time.time()  # Record the end time
+
+    elapsed_time_ms = (time.time() - start_time) * 1000
+    print(f"Time taken for `SMartPeek`: {elapsed_time_ms:.2f} ms")  # Print the elapsed time
+    
     
     print("Cargo output:")
     print(result.stdout)
@@ -398,6 +403,8 @@ if __name__ == "__main__":
                         help='Optional bound parameter for verification (default: None).')
     parser.add_argument('--iterative', action='store_true', 
                         help='Enable iterative mode for verification (requires --bound).')
+    parser.add_argument('--visitors', type=str, default=None, 
+                        help='Comma-separated list of visitors to use (default: built-in list).')
 
     # Collect all arguments except the last one as input
     args, input_file = parser.parse_known_args()  # Parse the arguments
@@ -405,6 +412,10 @@ if __name__ == "__main__":
     # Check if --iterative is specified without --bound
     if args.iterative and args.bound is None:
         parser.error("--iterative requires --bound to be specified.")
+
+    # Update the global VISITORS variable if --visitors is provided
+    if args.visitors:
+        VISITORS = [visitor.strip() for visitor in args.visitors.split(',')]
 
     # Pass the arguments to main
     main(input_file[-1], mode=args.mode, bound=args.bound, iterative=args.iterative)

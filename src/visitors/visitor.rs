@@ -29,19 +29,30 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("fn_block_expr", VerusVisitor::visit_fn_block_expr);
         handlers.insert("stmt_list", VerusVisitor::visit_stmt_list);
         handlers.insert("closure_param_list", VerusVisitor::visit_closure_param_list);
-        handlers.insert("generic_param_list", VerusVisitor::visit_generic_param_list);
+        handlers.insert("generic_param_list", VerusVisitor::visit_generic_param_list); // new
         handlers.insert(
             "comma_delimited_exprs",
             VerusVisitor::visit_comma_delimited_exprs,
         );
         handlers.insert(
             "comma_delimited_exprs_for_verus_clauses",
-            VerusVisitor::visit_comma_delimited_exprs_for_verus_clauses,
+            VerusVisitor::visit_comma_delimited_exprs_for_verus_clauses, //new
         );
         handlers.insert("paren_expr_inner", VerusVisitor::visit_paren_expr_inner);
         handlers.insert("arg_list", VerusVisitor::visit_arg_list);
         handlers.insert("COMMENT", VerusVisitor::visit_comment);
-
+        handlers.insert("item_list", VerusVisitor::visit_item_list); // new
+        handlers.insert("record_field_list", VerusVisitor::visit_record_field_list); // new
+        handlers.insert("assoc_item_list", VerusVisitor::visit_assoc_item_list); // new
+        handlers.insert("match_arm_list", VerusVisitor::visit_match_arm_list);
+        handlers.insert("tuple_struct_pat_inner", VerusVisitor::visit_tuple_struct_pat_inner);
+        handlers.insert("tuple_pat", VerusVisitor::visit_tuple_struct_pat);
+        handlers.insert("match_arm_lhs", VerusVisitor::visit_match_arm_lhs);
+        handlers.insert("record_expr_field_list", VerusVisitor::visit_record_expr_field_list);
+        handlers.insert("trigger_str", VerusVisitor::visit_trigger_str);
+        handlers.insert("generic_args", VerusVisitor::visit_generic_args);
+        handlers.insert("ref_type", VerusVisitor::visit_ref_type);
+        handlers.insert("use_tree_list", VerusVisitor::visit_use_tree_list);
         Self { handlers }
     }
 
@@ -64,7 +75,7 @@ pub struct VerusVisitor;
 
 impl VerusVisitor {
     fn visit<T: HasProgram>(datum: &mut T, pair: Pair<Rule>, handlers: &dyn HandlerInterface<T>) {
-        println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
+        // println!("VISITING {:?} {:?}", pair.as_rule(), pair.as_str());
         let rule_name = format!("{:?}", pair.as_rule());
         if let Some(handler) = handlers.get_handler(&rule_name) {
             handler(datum, pair, handlers);
@@ -86,6 +97,141 @@ impl VerusVisitor {
             VerusVisitor::visit_all(datum, inner_pairs, handlers);
         }
     }
+
+    fn visit_item_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{\n");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("}\n");
+    }
+
+    fn visit_record_field_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{\n");
+        for inner_pair in pair.into_inner() {
+            datum.program_mut().push_str(inner_pair.as_str());
+            datum.program_mut().push_str(", ");
+        }
+        datum.program_mut().push_str("}\n");
+    }
+
+    fn visit_assoc_item_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{\n");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("}\n");
+    }
+
+    fn visit_match_arm_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{\n");
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }
+        // VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("}\n");
+    }
+
+    fn visit_tuple_struct_pat_inner<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("(");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str(")");
+    }
+
+    fn visit_tuple_struct_pat<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("(");
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }        datum.program_mut().push_str(")");
+    }
+
+    fn visit_match_arm_lhs<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        datum.program_mut().push_str("=>");
+    }
+
+    fn visit_record_expr_field_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{\n");
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }
+        datum.program_mut().push_str("}\n");
+    }
+    
+    fn visit_trigger_str<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("[trigger]");
+    }
+
+    fn visit_generic_args<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }
+    }
+
+    fn visit_ref_type<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("&");
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+    }
+
+    fn visit_use_tree_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{");
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }        
+        datum.program_mut().push_str("}");
+
+    }
+
+    
 
     fn visit_stmt_list<T: HasProgram>(
         datum: &mut T,
@@ -113,7 +259,10 @@ impl VerusVisitor {
         handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str("<");
-        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }
         datum.program_mut().push_str(">");
     }
 
