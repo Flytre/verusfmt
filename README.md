@@ -13,6 +13,11 @@ i.e.
 
 ## Running End-To-End
 
+Choose or add an experiment config ./configs
+run `python runExperiment.py configs/experiment.json` The output will be found in ./experiment_logs/experiment_summary.csv
+
+### Running manually
+
 The python script `./src/runSMarTPeek.py [verus file]` will run verus on the target verus file. If the verification fails, it will then run this tool to finitize the specified verus file. After the finitization is complete, verus will again be run on the finite representation.
 
 To run this:
@@ -31,8 +36,11 @@ A simple working example can be run with the following: `./src/runSMarTPeek.py s
 i.e. `./src/runSMarTPeek.py --mode Proof simple_end_to_end.rs`
 
 #### Additional Command Line Arguments
+* --visitors [list of visitors]: list of finitization passes
 * --bound [int]: concrete upper bound that will be passed to fmt tool
 *  --iterative: flag to iteratively check finitezed file with bounds 1..bound (only works if --bound is also set)
+
+####
 
 ---
 

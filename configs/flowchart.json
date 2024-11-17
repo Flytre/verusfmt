@@ -1,0 +1,144 @@
+{
+    "experiments": [
+        {
+            "name": "binarySearch_LI_S_F",
+            "program":  "./flowchartExperiments/binarySearchEx_LI_S_F.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "binarySearch_LI_S_S",
+            "program":  "./flowchartExperiments/binarySearchEx_LI_S_S.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_F_Modular",
+            "program":  "./flowchartExperiments/indexUpTo_Assertion_F_Modular.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_F",
+            "program":  "./flowchartExperiments/indexUpTo_Assertion_F.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_S_Modular",
+            "program":  "./flowchartExperiments/indexUpTo_Assertion_S_Modular.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_S",
+            "program":  "./flowchartExperiments/indexUpTo_Assertion_S.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "indexUpTo_PC_F",
+            "program":  "./flowchartExperiments/indexUpTo_PC_F.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "indexUpTo_PC_S",
+            "program":  "./flowchartExperiments/indexUpTo_PC_S.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "primeEx_specAssertion_F",
+            "program":  "./flowchartExperiments/primeEx_specAssertion_F.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "primeEx_specAssertion_S",
+            "program":  "./flowchartExperiments/primeEx_specAssertion_S.rs", 
+            "visitors": [
+                "QuantifierVisitor",
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        }
+    ]
+}
