@@ -36,14 +36,14 @@ impl<T: HasProgram> HandlerMap<T> {
         );
         handlers.insert(
             "comma_delimited_exprs_for_verus_clauses",
-            VerusVisitor::visit_comma_delimited_exprs_for_verus_clauses, //new
+            VerusVisitor::visit_comma_delimited_exprs_for_verus_clauses,
         );
         handlers.insert("paren_expr_inner", VerusVisitor::visit_paren_expr_inner);
         handlers.insert("arg_list", VerusVisitor::visit_arg_list);
         handlers.insert("COMMENT", VerusVisitor::visit_comment);
-        handlers.insert("item_list", VerusVisitor::visit_item_list); // new
-        handlers.insert("record_field_list", VerusVisitor::visit_record_field_list); // new
-        handlers.insert("assoc_item_list", VerusVisitor::visit_assoc_item_list); // new
+        handlers.insert("item_list", VerusVisitor::visit_item_list);
+        handlers.insert("record_field_list", VerusVisitor::visit_record_field_list); 
+        handlers.insert("assoc_item_list", VerusVisitor::visit_assoc_item_list); 
         handlers.insert("match_arm_list", VerusVisitor::visit_match_arm_list);
         handlers.insert("tuple_struct_pat_inner", VerusVisitor::visit_tuple_struct_pat_inner);
         handlers.insert("tuple_pat", VerusVisitor::visit_tuple_struct_pat);
@@ -54,6 +54,10 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("ref_type", VerusVisitor::visit_ref_type);
         handlers.insert("use_tree_list", VerusVisitor::visit_use_tree_list);
         handlers.insert("attr_core", VerusVisitor::visit_attr_core);
+        handlers.insert("variant_list", VerusVisitor::visit_variant_list);
+        handlers.insert("field_list", VerusVisitor::visit_field_list);
+        handlers.insert("condensable_record_field_list", VerusVisitor::visit_condensable_record_field_list);
+        handlers.insert("record_pat_field_list", VerusVisitor::visit_record_pat_field_list);
         Self { handlers }
     }
 
@@ -90,7 +94,7 @@ impl VerusVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<T>,
     ) {
-        //        println!("VISITING {:?} : {}", pair.as_rule(), pair.as_str());
+        // println!("VISITING {:?} : {}", pair.as_rule(), pair.as_str());
         let inner_pairs = pair.clone().into_inner();
         if inner_pairs.clone().count() == 0 {
             datum.program_mut().push_str(&format!("{} ", pair.as_str()));
@@ -106,6 +110,77 @@ impl VerusVisitor {
         datum.program_mut().push_str(&format!("{} ", pair.as_str()));
     }
 
+
+    fn visit_record_pat_field_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{ ");
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }
+        datum.program_mut().push_str(" }");
+    }
+    
+    fn visit_condensable_record_field_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        let mut inner_pairs = pair.into_inner().peekable(); // Make the iterator peekable
+    
+        while let Some(inner_pair) = inner_pairs.next() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+    
+            // Add "," only if there's another element after the current one
+            if inner_pairs.peek().is_some() {
+                datum.program_mut().push_str(", ");
+            }
+        }
+    }
+
+    fn visit_field_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        let first_char = pair.as_str().chars().next();
+
+        if let Some('{') = first_char {
+            // Handle curly brace case
+            datum.program_mut().push_str("{");
+            for inner_pair in pair.into_inner() {
+                VerusVisitor::visit(datum, inner_pair, handlers);
+                datum.program_mut().push_str(", ");
+            }
+            datum.program_mut().push_str("}");
+        } else if let Some('(') = first_char {
+            // Handle parenthesis 
+            datum.program_mut().push_str("(");
+            for inner_pair in pair.into_inner() {
+                VerusVisitor::visit(datum, inner_pair, handlers);
+                datum.program_mut().push_str(", ");
+            }
+            datum.program_mut().push_str(")");
+        }
+        
+    }
+
+
+    fn visit_variant_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str("{\n");
+        for inner_pair in pair.into_inner() {
+            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            datum.program_mut().push_str(", ");
+        }
+        datum.program_mut().push_str("}\n");
+    }
 
     fn visit_item_list<T: HasProgram>(
         datum: &mut T,

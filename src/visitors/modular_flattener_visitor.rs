@@ -336,30 +336,33 @@ impl ModularFlattenerVisitor {
                 };
                 if let (Some(parent_mode), Some(called_mode)) = (parent_mode, called_function_mode) {
 
+                    // println!(" parent = {:?} , called = {:?}",parent_mode.as_str().to_string() , called_mode.as_str().to_string() );
 
-                    if(parent_mode.as_str().to_string() == called_mode.as_str().to_string() && called_mode.as_str().to_string() != "fn".to_string()){ // temporary restriction for "fns"
-                    let mut function_body = function_body.clone();
-                    // Now extract the parameters from the function signature
-                    let function_signature = function_body.split('(').nth(1).unwrap_or(""); // Extract the part after the '('
-                    let param_str = function_signature.split(')').next().unwrap_or(""); // Extract the part before the ')'
-                    
-                    param_names = param_str
-                        .split(',')
-                        .map(|s| s.trim().split(':').next().unwrap().trim().to_string()) // Get parameter names before the ":"
-                        .collect();
+                    // if(parent_mode.as_str().to_string() == called_mode.as_str().to_string() && called_mode.as_str().to_string() != "fn".to_string()){ // temporary restriction for "fns"
+                    if(called_mode.as_str().to_string() != "fn".to_string()){ // temporary restriction for "fns" (but still allow proof and spec to be flattened)
+
+                        let mut function_body = function_body.clone();
+                        // Now extract the parameters from the function signature
+                        let function_signature = function_body.split('(').nth(1).unwrap_or(""); // Extract the part after the '('
+                        let param_str = function_signature.split(')').next().unwrap_or(""); // Extract the part before the ')'
+                        
+                        param_names = param_str
+                            .split(',')
+                            .map(|s| s.trim().split(':').next().unwrap().trim().to_string()) // Get parameter names before the ":"
+                            .collect();
 
 
-                    Self::replace_params_with_args(&mut function_body, &param_names, &args);
-                    // println!("\nAfter replacement:\n{}", function_body);
-                    
-                    if let Some(body) = Self::extract_function_body(&function_body) {
-                        datum.program_mut().push_str(&format!("({}) ", body.as_str()));
-                        return;
+                        Self::replace_params_with_args(&mut function_body, &param_names, &args);
+                        // println!("\nAfter replacement:\n{}", function_body);
+                        
+                        if let Some(body) = Self::extract_function_body(&function_body) {
+                            datum.program_mut().push_str(&format!("({}) ", body.as_str()));
+                            return;
 
-                    } else {
-                        // VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
-                        println!("Could not extract function body.");
-                    }
+                        } else {
+                            // VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+                            println!("Could not extract function body.");
+                        }
 
                     }
                 }
