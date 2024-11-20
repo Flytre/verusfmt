@@ -53,6 +53,7 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("generic_args", VerusVisitor::visit_generic_args);
         handlers.insert("ref_type", VerusVisitor::visit_ref_type);
         handlers.insert("use_tree_list", VerusVisitor::visit_use_tree_list);
+        handlers.insert("attr_core", VerusVisitor::visit_attr_core);
         Self { handlers }
     }
 
@@ -97,6 +98,14 @@ impl VerusVisitor {
             VerusVisitor::visit_all(datum, inner_pairs, handlers);
         }
     }
+    fn visit_attr_core<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        datum.program_mut().push_str(&format!("{} ", pair.as_str()));
+    }
+
 
     fn visit_item_list<T: HasProgram>(
         datum: &mut T,
