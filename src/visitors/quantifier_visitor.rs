@@ -20,6 +20,7 @@ impl QuantifierVisitor {
         let mut handlers = HandlerMap::new();
         handlers.insert("quantifier_expr", QuantifierVisitor::visit_quantifier); // contains logic for forall and exists
         handlers.insert("quantifier_expr_no_struct", QuantifierVisitor::visit_quantifier); // treat the same as quantifier_expr
+        handlers.insert("let_stmt", QuantifierVisitor::visit_let_stmt); // try to "catch" a choose quantifier before visiting it
         handlers
     }
 
@@ -29,12 +30,157 @@ impl QuantifierVisitor {
         VerusVisitor::visit_all(datum, pairs, &handler_map as &dyn HandlerInterface<CoreDatum>);
     }
 
+    fn visit_let_stmt(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+        // println!("Found stmt = {:?} - {}", pair.as_rule(), pair.as_str());
+        
+        if pair.as_str().contains("choose|") {
+            let mut found_quantifier: Option<Pair<Rule>> = None; // Declare the variable to hold the quantifier
+            // Logic for when the "choose|" substring is found
+            // println!("The substring 'choose|' was found.");
+    
+            let mut stack = Vec::new(); // Stack to hold pairs to explore
+            stack.push(pair.clone());   // Start with the original pair
+    
+            while let Some(current_pair) = stack.pop() {
+                // Check if the current pair is a quantifier
+                if current_pair.as_rule() == Rule::quantifier_expr {
+                    println!("Found quantifier: {:?}", current_pair.as_str());
+                    // Handle the quantifier as needed here (e.g., break, store it, etc.)
+                    found_quantifier = Some(current_pair); // Assign the found quantifier
+                    break; // Exit the loop once a quantifier is found
+                }
+    
+                // If it's not a quantifier, push its inner pairs onto the stack
+                for inner_pair in current_pair.into_inner() {
+                    stack.push(inner_pair); // Add inner pair to the stack to explore
+                }
+            }
+                // After the while loop, you can use found_quantifier
+            if let Some(quantifier) = found_quantifier {
+                // Do something with the quantifier, for example:
+                // println!("Quantifier found and stored: {:?}", quantifier.as_str());
+
+                //process choose! 
+                let mut inner_pairs = quantifier.clone().into_inner();
+        
+                if let Some(first_pair) = inner_pairs.next() {
+                      // Initialize variables to hold closure parameters and expr
+                    let mut closure_param_list = None;
+                    let mut expr = None;
+
+                    // Loop over inner elements to find `closure_param_list` and `expr`
+                    for inner_pair in inner_pairs {
+                        match inner_pair.as_rule() {
+                            Rule::closure_param_list => {
+                                closure_param_list = Some(inner_pair.clone());
+                            },
+                            Rule::expr => {
+                                expr = Some(inner_pair.clone());
+                            },
+                            Rule::expr_no_struct => { // treat the same as expr
+                                expr = Some(inner_pair.clone());
+                            },
+                            _ => {}
+                        }
+                    }
+                    // Ensure both closure_param_list and expr were found
+                    if let (Some(ref closure_param_list), Some(ref expr)) = (closure_param_list, expr) {
+                        // Parse the closure_param_list to find variable names and types
+                        let mut param_map: HashMap<String, String> = HashMap::new(); // Holds variable name and type
+
+                        // Iterate over the inner pairs of closure_param_list
+                        let mut quant_params = closure_param_list.clone().into_inner();
+                        while let Some(quant_param_pair) = quant_params.next(){
+                            match quant_param_pair.as_rule() {
+                                Rule::param => {
+                                    // println!("paramPair = {:?} :: {:?}",quant_param_pair.as_rule(), quant_param_pair.as_str());
+                                    let mut inner_param_pairs = quant_param_pair.clone().into_inner();
+                                    let mut var_name = "";
+                                    let mut var_type = "";
+                                    while let Some(inner_param_pair) = inner_param_pairs.next(){
+                                        // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
+                                        match inner_param_pair.as_rule() {
+                                            Rule::pat_no_top_alt => {
+                                                    var_name = quant_param_pair.clone().as_str();
+                                                    // Split the string at ":"
+                                                    let parts: Vec<&str> = var_name.split(':').map(|part| part.trim()).collect();
+                                                    
+                                                    // Ensure there are exactly two parts
+                                                    if parts.len() == 2 {
+                                                        let key = parts[0];
+                                                        let value = parts[1];
+                                                        
+                                                        param_map.insert(key.to_string(),value.to_string());
+                                                    } else {
+                                                        println!("Variable format is incorrect.");
+                                                    }
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        // Initialize a map for the variables in the expression
+                        let mut variables: HashMap<String, usize> = HashMap::new();
+                        for (key, value) in &param_map {
+                            variables.insert(key.to_string(),0);
+                            // println!("jere {:?}",key.to_string());
+                        }
+                        if first_pair.as_rule() == Rule::choose_str {
+                            // println!("choose {:?} ", first_pair.as_str());
+                            let satisfying_values_exists = Self::find_satisfying_values_exists(&mut variables, datum.finite_bound);
+                            let mut expressions = Vec::new();
+                            for s_val in satisfying_values_exists {
+                                // Iterate over the key-value pairs in each map
+                                let mut expr_with_values = expr.as_str().to_string();
+                                for (variable_name, value) in s_val {
+                                    // Create a regex pattern for exact match of the variable name
+                                    let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
+                                    let regex = Regex::new(&pattern).unwrap();
+        
+                                    // Replace only exact matches in the expression
+                                    expr_with_values = regex.replace_all(&expr_with_values, &value.to_string()).into_owned();
+                                }
+                                expressions.push(expr_with_values);
+                            }
+        
+        
+                            let mut iter = expressions.clone().into_iter().peekable();
+                            if let Some(first_expr) = iter.next() {
+                                datum.program_mut().push_str(&format!("assert(({})",  first_expr.as_str()));
+                                for expanded_expr in iter {
+                                    datum.program_mut().push_str(&format!("|| ({})",  expanded_expr.as_str()));
+        
+                                }
+                            } 
+                            datum.program_mut().push_str(");");
+                            // VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+                        }
+                    }
+                }
+            } else {
+                println!("No quantifier was found.");
+            }
+        } else {
+            // println!("The substring 'choose|' was not found.");
+        }
+    
+        // Continue with further processing if necessary
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+    } 
+
     fn visit_quantifier(
         datum: &mut CoreDatum,
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        println!("Found quantifier = {}", pair.as_str());
+        println!("Found quantifier = {:?} - {}", pair.as_rule(), pair.as_str());
         // common preamble 
         let mut inner_pairs = pair.clone().into_inner();
         
@@ -116,14 +262,70 @@ impl QuantifierVisitor {
 
       
                         let (all_found, missing_vars) = Self::check_missing_variables_from_expr(expr, &variables);
-                    
 
+                        //TODO Clean-up code
                         if(all_found){
                             let (lower_bound, upper_bound) = Self::find_bounds(expr); // Find both bounds
-                            println!("Upper bound found: {},lower bound Found {}.", upper_bound, lower_bound);
+                            println!("Upper bound found: {},lower bound Found {}. {:?}", upper_bound, lower_bound, &mut variables);
                             // Call the function to find all satisfying combinations
+                            let mut satisfying_values: Option<Vec<HashMap<String, usize>>> = None;
+                            if Self::can_be_evaluated_by_eval_forall_bounds(expr, &variables) {
+                                println!("Expression '{}' CAN be evaluated by evalForallBounds", expr);
 
-                            let satisfying_values = Self::find_satisfying_values(expr, &mut variables, lower_bound, upper_bound);
+                                // let (lower_bound, upper_bound) = Self::find_bounds(expr);
+                                // let satisfying_values = Self::find_satisfying_values(expr, &mut variables, lower_bound, upper_bound);
+                                // Process satisfying values
+                                satisfying_values = Some(Self::find_satisfying_values(expr, &mut variables, lower_bound, upper_bound));
+                            } else {
+                                println!("Expression '{}' cannot be evaluated by evalForallBounds", expr);
+                                satisfying_values = Some(Self::generate_combinations_simple(&mut variables,datum.finite_bound));
+                                // println!("Satisfying combinations:");
+                                // for combination in satisfying_values.clone() {
+                                //     println!("{:?}", combination);
+                                // }
+
+            
+                                if let Some(satisfying_values) = satisfying_values {
+                                    // Collect pairs of (LHS expression, RHS expression)
+                                    let mut generated_expressions = Vec::new();
+                            
+                                    for s_val in satisfying_values {
+                                        // Generate LHS with values
+                                        let mut lhs_with_values = lhsExpr.as_str().to_string();
+                                        let mut rhs_with_values = rhsExpr.as_str().to_string();
+                            
+                                        // Replace variables in both LHS and RHS
+                                        for (variable_name, value) in s_val {
+                                            let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
+                                            let regex = Regex::new(&pattern).unwrap();
+                            
+                                            lhs_with_values = regex.replace_all(&lhs_with_values, &value.to_string()).into_owned();
+                                            rhs_with_values = regex.replace_all(&rhs_with_values, &value.to_string()).into_owned();
+                                        }
+                            
+                                        generated_expressions.push((lhs_with_values, rhs_with_values));
+                                    }
+                            
+                                    // println!("Generated (LHS, RHS) pairs:");
+                                    // for (lhs, rhs) in &generated_expressions {
+                                    //     println!("LHS: {}, RHS: {}", lhs, rhs);
+                                    // }
+                                    let mut iter = generated_expressions.clone().into_iter().peekable();
+                                    if let Some((first_lhs, first_rhs)) = iter.next() {
+                                        datum
+                                            .program_mut()
+                                            .push_str(&format!("(({}) ==> ({}))", first_lhs, first_rhs));
+                                        for (expanded_lhs, expanded_rhs) in iter {
+                                            datum
+                                                .program_mut()
+                                                .push_str(&format!(" && (({}) ==> ({}))", expanded_lhs, expanded_rhs));
+                                        }
+                                    }
+
+                                }
+                                
+                                return;
+                            }
 
                             // Print out the satisfying combinations
                             // println!("Satisfying combinations:");
@@ -132,20 +334,22 @@ impl QuantifierVisitor {
                             // }
 
                             let mut expressions = Vec::new();
+                            if let Some(satisfying_values) = satisfying_values {
+                                for s_val in satisfying_values {
+                                    // Iterate over the key-value pairs in each map
+                                    let mut expr_with_values = rhsExpr.as_str().to_string();
+                                    println!("rhs = {:?}",s_val);
+                                    for (variable_name, value) in s_val {
+                                        // Replace each variable in the RHS with its value
+                                        let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
+                                        let regex = Regex::new(&pattern).unwrap();
 
-                            for s_val in satisfying_values {
-                                // Iterate over the key-value pairs in each map
-                                let mut expr_with_values = rhsExpr.as_str().to_string();
-                                for (variable_name, value) in s_val {
-                                    // Replace each variable in the RHS with its value
-                                    let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
-                                    let regex = Regex::new(&pattern).unwrap();
+                                        // expr_with_values = expr_with_values.replace(&variable_name, &value.to_string());
+                                        expr_with_values = regex.replace_all(&expr_with_values, &value.to_string()).into_owned();
 
-                                    // expr_with_values = expr_with_values.replace(&variable_name, &value.to_string());
-                                    expr_with_values = regex.replace_all(&expr_with_values, &value.to_string()).into_owned();
-
+                                    }
+                                    expressions.push(expr_with_values);
                                 }
-                                expressions.push(expr_with_values);
                             }
                         
                             let mut iter = expressions.clone().into_iter().peekable();
@@ -241,7 +445,7 @@ impl QuantifierVisitor {
                             }
                         }
                     }
-                // end forall 
+                    // end forall 
                 } else if first_pair.as_rule() == Rule::exists_str {
                     
                     // println!("found exists expr  {}", first_pair);
@@ -272,14 +476,57 @@ impl QuantifierVisitor {
 
                         }
                     }
-                }// end exists 
+                    // end exists 
+                } else {
+                    VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+                }
             }
         }
     }
 
 // -------------------------    
 // ---- HELPER FUNCTIONS ---
-// -------------------------    
+// ------------------------- 
+
+    fn generate_combinations_simple(
+        variables: &HashMap<String, usize>,
+        bound: usize,
+    ) -> Vec<HashMap<String, usize>> {
+        let var_names: Vec<String> = variables.keys().cloned().collect();
+        let mut results = Vec::new();
+        let mut current_values = vec![0; var_names.len()];
+
+        loop {
+            // Create a new HashMap for the current combination
+            let mut combination = HashMap::new();
+            for (i, var_name) in var_names.iter().enumerate() {
+                combination.insert(var_name.clone(), current_values[i]);
+            }
+            results.push(combination);
+
+            // Increment the combination to the next one
+            let mut idx = 0;
+            while idx < current_values.len() {
+                if current_values[idx] < bound {
+                    current_values[idx] += 1;
+                    break;
+                } else {
+                    current_values[idx] = 0;
+                    idx += 1;
+                }
+            }
+
+            // If we have exhausted all combinations, break the loop
+            if idx == current_values.len() {
+                break;
+            }
+        }
+
+        results
+    }
+
+
+
     fn find_bounds(expr: &str) -> (usize, usize) {
         let parts: Vec<&str> = expr.split_whitespace().collect();
         let mut lower_bound: Option<usize> = None; // Use Option to handle uninitialized state
@@ -423,9 +670,38 @@ impl QuantifierVisitor {
             idx += 2;
         }
 
-    // Ensure last_value is within the bounds
-    last_value >= lower_bound && last_value <= upper_bound
-}
+        // Ensure last_value is within the bounds
+        last_value >= lower_bound && last_value <= upper_bound
+    }
+
+
+    fn can_be_evaluated_by_eval_forall_bounds(expr: &str, variables: &HashMap<String, usize>) -> bool {
+        // Tokenize the expression by splitting on whitespace
+        let parts: Vec<&str> = expr.split_whitespace().collect();
+
+        // Ensure there are enough tokens for a valid comparison chain
+        if parts.len() < 3 || parts.len() % 2 == 0 {
+            return false;
+        }
+
+        // Check the pattern: value/operator/value/operator/...
+        for (i, part) in parts.iter().enumerate() {
+            if i % 2 == 0 {
+                // Expect a variable or numeric literal
+                if part.parse::<usize>().is_err() && !variables.contains_key(*part) {
+                    return false; // Invalid variable or missing numeric literal
+                }
+            } else {
+                // Expect a valid comparison operator
+                if !["<", "<=", ">", ">="].contains(part) {
+                    return false; // Unsupported operator
+                }
+            }
+        }
+
+        true
+    }
+
 
 
     fn find_satisfying_values(
@@ -442,7 +718,6 @@ impl QuantifierVisitor {
 
         // Generate all combinations within the range and evaluate them
         let mut current_values = vec![lower_bound; variable_names.len()];
-
         loop {
             // Set variable values in the HashMap
             for (i, var_name) in variable_names.iter().enumerate() {
