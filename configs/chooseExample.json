@@ -1,0 +1,15 @@
+{
+    "experiments": [
+        {
+            "name": "choose",
+            "program":  "./visitorExamples/chooseEx.rs", 
+            "visitors": [
+                "QuantifierVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5"
+            ]
+        }
+    ]
+}

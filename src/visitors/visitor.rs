@@ -58,6 +58,7 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("field_list", VerusVisitor::visit_field_list);
         handlers.insert("condensable_record_field_list", VerusVisitor::visit_condensable_record_field_list);
         handlers.insert("record_pat_field_list", VerusVisitor::visit_record_pat_field_list);
+        handlers.insert("tuple_field_list", VerusVisitor::visit_tuple_field_list);
         Self { handlers }
     }
 
@@ -88,6 +89,7 @@ impl VerusVisitor {
             VerusVisitor::default_visit(datum, pair, handlers);
         }
     }
+    
 
     fn default_visit<T: HasProgram>(
         datum: &mut T,
@@ -118,12 +120,29 @@ impl VerusVisitor {
     ) {
         datum.program_mut().push_str("{ ");
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
         }
         datum.program_mut().push_str(" }");
     }
+
     
+    fn visit_tuple_field_list<T: HasProgram>(
+        datum: &mut T,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<T>,
+    ) {
+        let mut inner_pairs = pair.into_inner().peekable(); // Make the iterator peekable
+    
+        while let Some(inner_pair) = inner_pairs.next() {
+            VerusVisitor::visit(datum, inner_pair, handlers);
+    
+            if inner_pairs.peek().is_some() {
+                datum.program_mut().push_str(", ");
+            }
+        }
+    }
+
     fn visit_condensable_record_field_list<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
@@ -132,9 +151,8 @@ impl VerusVisitor {
         let mut inner_pairs = pair.into_inner().peekable(); // Make the iterator peekable
     
         while let Some(inner_pair) = inner_pairs.next() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
     
-            // Add "," only if there's another element after the current one
             if inner_pairs.peek().is_some() {
                 datum.program_mut().push_str(", ");
             }
@@ -176,7 +194,7 @@ impl VerusVisitor {
     ) {
         datum.program_mut().push_str("{\n");
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
         }
         datum.program_mut().push_str("}\n");
@@ -222,7 +240,7 @@ impl VerusVisitor {
     ) {
         datum.program_mut().push_str("{\n");
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
         }
         // VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
@@ -235,7 +253,17 @@ impl VerusVisitor {
         handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str("(");
-        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        // VerusVisitor::visit_all(datum, pair.into_inner(), handlers)
+        let mut inner_pairs = pair.into_inner().peekable(); // Make the iterator peekable
+    
+        while let Some(inner_pair) = inner_pairs.next() {
+            VerusVisitor::visit(datum, inner_pair, handlers);
+    
+            if inner_pairs.peek().is_some() {
+                datum.program_mut().push_str(", ");
+            }
+        }
+
         datum.program_mut().push_str(")");
     }
 
@@ -245,10 +273,12 @@ impl VerusVisitor {
         handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str("(");
+
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
-        }        datum.program_mut().push_str(")");
+        }        
+        datum.program_mut().push_str(")");
     }
 
     fn visit_match_arm_lhs<T: HasProgram>(
@@ -267,7 +297,7 @@ impl VerusVisitor {
     ) {
         datum.program_mut().push_str("{\n");
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
         }
         datum.program_mut().push_str("}\n");
@@ -287,7 +317,7 @@ impl VerusVisitor {
         handlers: &dyn HandlerInterface<T>,
     ) {
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
         }
     }
@@ -308,7 +338,7 @@ impl VerusVisitor {
     ) {
         datum.program_mut().push_str("{");
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
         }        
         datum.program_mut().push_str("}");
@@ -344,7 +374,7 @@ impl VerusVisitor {
     ) {
         datum.program_mut().push_str("<");
         for inner_pair in pair.into_inner() {
-            VerusVisitor::default_visit(datum, inner_pair, handlers);
+            VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
         }
         datum.program_mut().push_str(">");
