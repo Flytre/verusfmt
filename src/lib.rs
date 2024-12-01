@@ -1692,6 +1692,11 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             let collectionsVisitor = visitors::collections_visitor::CollectionsVisitor::new(visit_dat.target_name.clone());
             collectionsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "LambdaVisitor" => {
+            // Create an instance of SimpleVisitor with the target_name from CoreDatum
+            let lambdaVisitor = visitors::lambda_visitor::LambdaVisitor::new(visit_dat.target_name.clone());
+            lambdaVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "LoopVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
