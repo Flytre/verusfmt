@@ -20,23 +20,38 @@ verus! {
     candidate % factor == 0
 }
 
+// spec fn is_prime(candidate: nat) -> bool {
+//     &&& 1 < candidate
+//     &&& forall|factor: nat| 1 < factor < candidate ==> !divides(factor, candidate)
+// }
+
+//assume that "candidate has been pushed-down"
 spec fn is_prime(candidate: nat) -> bool {
     &&& 1 < candidate
-    &&& forall|factor: nat| 1 < factor < candidate ==> !divides(factor, candidate)
+    &&& forall|factor: nat| 1 < factor < 5 ==> !divides(factor, candidate)
 }
 
-    spec fn test(value: nat) -> bool {
-	&& true
-    }
 
 fn main() {
     // assert(!is_prime(0));
     // assert(!is_prime(1));
     // assert(is_prime(2));
-    assert(is_prime(4));
-    assert(test(5));
-    assert(divides(2, 4));
-    
+    assert(is_prime(3));
+    assert(forall|factor: nat| 1 < factor < 10 ==> !divides(factor, 10));
+
+    let mut v: Vec<u64> = Vec::new();
+        v.push(0);
+        v.push(10);
+        v.push(20);
+        v.push(30);
+        v.push(40);
+
+    assert(forall|i: int, j: int| 0 <= i <= j < v.len() ==> v[i] <= v[j]);
+
+    // assert(forall|i: int, j: int| 0 <= i <= j < 3 ==> v[i] <= v[j] <= v[k]);
+    // assert(forall|i: int, j: int, k:int| 0 <= i <= j < k <=  3 ==> v[i] <= v[j] <= v[k]);
+
+
     // assert(is_prime_F3());
     // assert(divides(2, 6));
     // assert(!is_prime(4));
