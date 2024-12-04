@@ -1687,6 +1687,16 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
         "FunctionInlineVisitor" => {
             visitors::visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
 	},
+        "CollectionsVisitor" => {
+            // Create an instance of CollectionsVisitor with the target_name from CoreDatum
+            let collectionsVisitor = visitors::collections_visitor::CollectionsVisitor::new(visit_dat.target_name.clone());
+            collectionsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
+        "LambdaVisitor" => {
+            // Create an instance of SimpleVisitor with the target_name from CoreDatum
+            let lambdaVisitor = visitors::lambda_visitor::LambdaVisitor::new(visit_dat.target_name.clone());
+            lambdaVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "LoopVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
@@ -1716,6 +1726,11 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             // Create an instance of RevealVisitor with the target_name from CoreDatum
             let revealVisitor = visitors::reveal_visitor::RevealVisitor::new(visit_dat.target_name.clone());
             revealVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
+        "SetSubsetVisitor" => {
+            // Create an instance of RevealVisitor with the target_name from CoreDatum
+            let setSubsetVisitor = visitors::set_subset_visitor::SetSubsetVisitor::new(visit_dat.target_name.clone());
+            setSubsetVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
