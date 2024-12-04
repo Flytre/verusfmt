@@ -147,6 +147,7 @@ impl CollectionsVisitor {
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
         let mut isSeqEqualExpr = false;
+        let mut equalityOp = "";
         let parent_name = PARENT_FUNCTION_NAME.lock().unwrap().clone();
         
         // Retrieve `parent_params`
@@ -161,13 +162,22 @@ impl CollectionsVisitor {
             parent_let_map.get(&parent_name).cloned()
         };
     
-        if pair.as_str().contains("=~=") {
+        if (pair.as_str().contains("=~=") || pair.as_str().contains("==")) {
             let mut inner_pairs = pair.clone().into_inner();
             for inner_pair in inner_pairs {
                 match inner_pair.as_rule() {
                     Rule::bin_expr_ops => {
                         if inner_pair.as_str() == "=~=" {
                             isSeqEqualExpr = true;
+                            equalityOp = "=~=";
+                        }
+                        else if inner_pair.as_str() == "==" {
+                            isSeqEqualExpr = true;
+                            equalityOp = "==";
+                        }
+                        else if inner_pair.as_str() == "===" {
+                            isSeqEqualExpr = true;
+                            equalityOp = "===";
                         }
                     }
                     _ => {}
@@ -176,16 +186,14 @@ impl CollectionsVisitor {
         }
 
         if isSeqEqualExpr {
-            println!("found deep equiv {:?}", pair.as_str());
+            // println!("found deep equiv {:?}", pair.as_str());
     
             let full_expr = pair.as_str();
-            if let Some(index) = full_expr.find("=~=") {
+            if let Some(index) = full_expr.find(equalityOp) {
                 let left_part = full_expr[..index].trim();
                 let right_part = full_expr[index + 3..].trim();
     
-                println!("Left part: {:?}", left_part);
-                println!("Right part: {:?}", right_part);
-    
+            
                 // Numerical types for validation
                 let numerical_types = vec![
                     "int", "nat", "usize", "i8", "u8", "i16", "u16", "i32", "u32", "i64", "u64",

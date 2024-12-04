@@ -1727,6 +1727,11 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
             let revealVisitor = visitors::reveal_visitor::RevealVisitor::new(visit_dat.target_name.clone());
             revealVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "SetSubsetVisitor" => {
+            // Create an instance of RevealVisitor with the target_name from CoreDatum
+            let setSubsetVisitor = visitors::set_subset_visitor::SetSubsetVisitor::new(visit_dat.target_name.clone());
+            setSubsetVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let simpleVisitor = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
