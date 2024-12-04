@@ -186,7 +186,6 @@ impl CollectionsVisitor {
         }
 
         if isSeqEqualExpr {
-            // println!("found deep equiv {:?}", pair.as_str());
     
             let full_expr = pair.as_str();
             if let Some(index) = full_expr.find(equalityOp) {

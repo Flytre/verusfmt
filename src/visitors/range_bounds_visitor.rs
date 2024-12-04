@@ -190,7 +190,7 @@ impl RangeBoundsVisitor {
         } 
         
         // Check for vector types
-        else if param_type.starts_with("&Vec<") {
+        else if (param_type.starts_with("&Vec<") || param_type.starts_with("Vec<") || param_type.starts_with("Seq<")) {
             // Add the parameter to vector_params regardless of the inner type
             vector_params.push(param.clone());
         }
