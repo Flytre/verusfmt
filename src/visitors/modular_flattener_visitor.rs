@@ -172,13 +172,13 @@ impl ModularFlattenerVisitor {
 
                 if let Some(function_pair) = VerusParser::str_to_function(&function_body) {
                     let mut inner_pairs = function_pair.clone().into_inner();
-                    let mut function_terminator = String::new();
+                    let mut _function_terminator = String::new();
                     if let Some(first_inner_pair) = inner_pairs.next() {
                         let mut first_inner_pairs = first_inner_pair.clone().into_inner();
 
                         while let Some(inner_pair) = first_inner_pairs.next() {
                             if inner_pair.as_rule() == Rule::fn_terminator {
-                                function_terminator = inner_pair.as_str().to_string();
+                                _function_terminator = inner_pair.as_str().to_string();
 
                                 let trimmed_function_body =
                                     inner_pair.as_str().trim_matches(|c| c == '{' || c == '}');
@@ -317,7 +317,7 @@ impl ModularFlattenerVisitor {
 
         let mut function_name: Option<String> = None;
         let mut args: Vec<String> = Vec::new(); // To store argument values
-        let mut param_names: Vec<String> = Vec::new(); // To store parameter names
+        let mut _param_names: Vec<String> = Vec::new(); // To store parameter names
 
         while let Some(inner_pair) = inner_pairs.next() {
             match inner_pair.as_rule() {
@@ -360,7 +360,7 @@ impl ModularFlattenerVisitor {
                     let parent_map = PARENT_FUNCTION_NAME_MAP.lock().unwrap();
                     parent_map.get(&function_name).cloned()
                 };
-                if let (Some(parent_mode), Some(called_mode)) = (parent_mode, called_function_mode)
+                if let (Some(_parent_mode), Some(called_mode)) = (parent_mode, called_function_mode)
                 {
                     // println!(" parent = {:?} , called = {:?}",parent_mode.as_str().to_string() , called_mode.as_str().to_string() );
 
@@ -373,12 +373,12 @@ impl ModularFlattenerVisitor {
                         let function_signature = function_body.split('(').nth(1).unwrap_or(""); // Extract the part after the '('
                         let param_str = function_signature.split(')').next().unwrap_or(""); // Extract the part before the ')'
 
-                        param_names = param_str
+                        _param_names = param_str
                             .split(',')
                             .map(|s| s.trim().split(':').next().unwrap().trim().to_string()) // Get parameter names before the ":"
                             .collect();
 
-                        Self::replace_params_with_args(&mut function_body, &param_names, &args);
+                        Self::replace_params_with_args(&mut function_body, &_param_names, &args);
                         // println!("\nAfter replacement:\n{}", function_body);
 
                         if let Some(body) = Self::extract_function_body(&function_body) {

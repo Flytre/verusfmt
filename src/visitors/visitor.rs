@@ -118,7 +118,7 @@ impl VerusVisitor {
     fn visit_attr_core<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
-        handlers: &dyn HandlerInterface<T>,
+        _handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str(&format!("{} ", pair.as_str()));
     }
@@ -220,7 +220,7 @@ impl VerusVisitor {
     fn visit_record_field_list<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
-        handlers: &dyn HandlerInterface<T>,
+        _handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str("{\n");
         for inner_pair in pair.into_inner() {
@@ -312,8 +312,8 @@ impl VerusVisitor {
 
     fn visit_trigger_str<T: HasProgram>(
         datum: &mut T,
-        pair: Pair<Rule>,
-        handlers: &dyn HandlerInterface<T>,
+        _pair: Pair<Rule>,
+        _handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str("[trigger]");
     }

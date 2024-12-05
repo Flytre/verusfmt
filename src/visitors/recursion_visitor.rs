@@ -49,7 +49,7 @@ impl RecursionVisitor {
 
         let recursive_fncs = RECURSIVE_FNCS.lock().unwrap();
 
-        for (key, value) in recursive_fncs.iter() {
+        for (_key, value) in recursive_fncs.iter() {
             // println!("Key: {}, Value: {}", key, value);
             datum.program_mut().push_str(value);
         }
@@ -100,7 +100,7 @@ impl RecursionVisitor {
                         .find(|p| p.as_rule() == Rule::path_expr_no_generics)
                     {
                         function_name = Some(function_pair.as_str().to_string());
-                        if let Some(function_name) = function_name.clone() {}
+                        if let Some(_function_name) = function_name.clone() {}
                     }
                 }
                 Rule::arg_list => {
@@ -169,7 +169,7 @@ impl RecursionVisitor {
                             recursive_fncs.insert(new_function_name.clone(), new_body.clone());
                         }
 
-                        if let Some(function_pair) = VerusParser::str_to_function(&new_body) {
+                        if let Some(_function_pair) = VerusParser::str_to_function(&new_body) {
                             // println!("Parsed the function: {:?}", function_pair.as_str());
                         } else {
                             println!("Failed to parse the recursive function.");

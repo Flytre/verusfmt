@@ -31,7 +31,7 @@ impl RevealVisitor {
     fn visit_attr_core<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
-        handlers: &dyn HandlerInterface<T>,
+        _handlers: &dyn HandlerInterface<T>,
     ) {
         // println!("attr = {:?}", pair.as_str());
         let mut is_opaque = false;

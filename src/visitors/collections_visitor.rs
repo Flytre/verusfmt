@@ -147,8 +147,8 @@ impl CollectionsVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        let mut isSeqEqualExpr = false;
-        let mut equalityOp = "";
+        let mut is_seq_equal_expr = false;
+        let mut equality_op = "";
         let parent_name = PARENT_FUNCTION_NAME.lock().unwrap().clone();
 
         // Retrieve `parent_params`
@@ -169,14 +169,14 @@ impl CollectionsVisitor {
                 match inner_pair.as_rule() {
                     Rule::bin_expr_ops => {
                         if inner_pair.as_str() == "=~=" {
-                            isSeqEqualExpr = true;
-                            equalityOp = "=~=";
+                            is_seq_equal_expr = true;
+                            equality_op = "=~=";
                         } else if inner_pair.as_str() == "==" {
-                            isSeqEqualExpr = true;
-                            equalityOp = "==";
+                            is_seq_equal_expr = true;
+                            equality_op = "==";
                         } else if inner_pair.as_str() == "===" {
-                            isSeqEqualExpr = true;
-                            equalityOp = "===";
+                            is_seq_equal_expr = true;
+                            equality_op = "===";
                         }
                     }
                     _ => {}
@@ -184,11 +184,11 @@ impl CollectionsVisitor {
             }
         }
 
-        if isSeqEqualExpr {
+        if is_seq_equal_expr {
             // println!("found deep equiv {:?}", pair.as_str());
 
             let full_expr = pair.as_str();
-            if let Some(index) = full_expr.find(equalityOp) {
+            if let Some(index) = full_expr.find(equality_op) {
                 let left_part = full_expr[..index].trim();
                 let right_part = full_expr[index + 3..].trim();
 

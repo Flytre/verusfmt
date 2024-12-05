@@ -68,8 +68,8 @@ impl StripProofVisitor {
     }
 
     fn visit_loop_clause(
-        datum: &mut CoreDatum,
-        pair: Pair<Rule>,
+        _datum: &mut CoreDatum,
+        _pair: Pair<Rule>,
         _handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
         // do nothing -- i.e. remove loop clause
@@ -94,13 +94,6 @@ impl StripProofVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        let name = pair
-            .clone()
-            .into_inner()
-            .find(|p| p.as_rule() == Rule::name)
-            .expect("Function must have a name")
-            .as_str();
-
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
     }
 }

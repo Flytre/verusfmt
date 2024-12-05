@@ -93,6 +93,7 @@ impl QuantifierVisitor {
                             _ => {}
                         }
                     }
+		    let mut _var_name = "";
                     // Ensure both closure_param_list and expr were found
                     if let (Some(ref closure_param_list), Some(ref expr)) =
                         (closure_param_list, expr)
@@ -108,15 +109,13 @@ impl QuantifierVisitor {
                                     // println!("paramPair = {:?} :: {:?}",quant_param_pair.as_rule(), quant_param_pair.as_str());
                                     let mut inner_param_pairs =
                                         quant_param_pair.clone().into_inner();
-                                    let mut var_name = "";
-                                    let var_type = "";
                                     while let Some(inner_param_pair) = inner_param_pairs.next() {
                                         // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
                                         match inner_param_pair.as_rule() {
                                             Rule::pat_no_top_alt => {
-                                                var_name = quant_param_pair.clone().as_str();
+                                                _var_name = quant_param_pair.clone().as_str();
                                                 // Split the string at ":"
-                                                let parts: Vec<&str> = var_name
+                                                let parts: Vec<&str> = _var_name
                                                     .split(':')
                                                     .map(|part| part.trim())
                                                     .collect();
@@ -141,7 +140,7 @@ impl QuantifierVisitor {
                         }
                         // Initialize a map for the variables in the expression
                         let mut variables: HashMap<String, usize> = HashMap::new();
-                        for (key, value) in &param_map {
+                        for (key, _value) in &param_map {
                             variables.insert(key.to_string(), 0);
                             // println!("jere {:?}",key.to_string());
                         }
@@ -241,16 +240,15 @@ impl QuantifierVisitor {
                         Rule::param => {
                             // println!("paramPair = {:?} :: {:?}",quant_param_pair.as_rule(), quant_param_pair.as_str());
                             let mut inner_param_pairs = quant_param_pair.clone().into_inner();
-                            let mut var_name = "";
-                            let var_type = "";
+                            let mut _var_name = "";
                             while let Some(inner_param_pair) = inner_param_pairs.next() {
                                 // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
                                 match inner_param_pair.as_rule() {
                                     Rule::pat_no_top_alt => {
-                                        var_name = quant_param_pair.clone().as_str();
+                                        _var_name = quant_param_pair.clone().as_str();
                                         // Split the string at ":"
                                         let parts: Vec<&str> =
-                                            var_name.split(':').map(|part| part.trim()).collect();
+                                            _var_name.split(':').map(|part| part.trim()).collect();
 
                                         // Ensure there are exactly two parts
                                         if parts.len() == 2 {
@@ -271,19 +269,19 @@ impl QuantifierVisitor {
                 }
                 // Initialize a map for the variables in the expression
                 let mut variables: HashMap<String, usize> = HashMap::new();
-                for (key, value) in &param_map {
+                for (key, _value) in &param_map {
                     variables.insert(key.to_string(), 0);
                 }
 
                 if first_pair.as_rule() == Rule::forall_str {
                     // Split implication
                     let (lhs_opt, rhs_opt) = VerusParser::split_implication(expr.as_str());
-                    if let (Some(lhsExpr), Some(rhsExpr)) = (lhs_opt, rhs_opt) {
+                    if let (Some(lhs_expr), Some(rhs_expr)) = (lhs_opt, rhs_opt) {
                         // println!("lhs = {:?}",lhsExpr.as_str());
                         // println!("RHS: {:?}", rhsExpr.as_str());
                         // println!("Parameters map: {:?}", param_map);
 
-                        let expr = lhsExpr.as_str();
+                        let expr = lhs_expr.as_str();
 
                         let (all_found, missing_vars) =
                             Self::check_missing_variables_from_expr(expr, &variables);
@@ -296,7 +294,7 @@ impl QuantifierVisitor {
                                 upper_bound, lower_bound, &mut variables
                             );
                             // Call the function to find all satisfying combinations
-                            let mut satisfying_values: Option<Vec<HashMap<String, usize>>> = None;
+                            let mut _satisfying_values: Option<Vec<HashMap<String, usize>>> = None;
                             if Self::can_be_evaluated_by_eval_forall_bounds(expr, &variables) {
                                 println!(
                                     "Expression '{}' CAN be evaluated by evalForallBounds",
@@ -306,7 +304,7 @@ impl QuantifierVisitor {
                                 // let (lower_bound, upper_bound) = Self::find_bounds(expr);
                                 // let satisfying_values = Self::find_satisfying_values(expr, &mut variables, lower_bound, upper_bound);
                                 // Process satisfying values
-                                satisfying_values = Some(Self::find_satisfying_values(
+                                _satisfying_values = Some(Self::find_satisfying_values(
                                     expr,
                                     &mut variables,
                                     lower_bound,
@@ -317,7 +315,7 @@ impl QuantifierVisitor {
                                     "Expression '{}' cannot be evaluated by evalForallBounds",
                                     expr
                                 );
-                                satisfying_values = Some(Self::generate_combinations_simple(
+                                _satisfying_values = Some(Self::generate_combinations_simple(
                                     &mut variables,
                                     datum.finite_bound,
                                 ));
@@ -326,14 +324,14 @@ impl QuantifierVisitor {
                                 //     println!("{:?}", combination);
                                 // }
 
-                                if let Some(satisfying_values) = satisfying_values {
+                                if let Some(satisfying_values) = _satisfying_values {
                                     // Collect pairs of (LHS expression, RHS expression)
                                     let mut generated_expressions = Vec::new();
 
                                     for s_val in satisfying_values {
                                         // Generate LHS with values
-                                        let mut lhs_with_values = lhsExpr.as_str().to_string();
-                                        let mut rhs_with_values = rhsExpr.as_str().to_string();
+                                        let mut lhs_with_values = lhs_expr.as_str().to_string();
+                                        let mut rhs_with_values = rhs_expr.as_str().to_string();
 
                                         // Replace variables in both LHS and RHS
                                         for (variable_name, value) in s_val {
@@ -383,10 +381,10 @@ impl QuantifierVisitor {
                             // }
 
                             let mut expressions = Vec::new();
-                            if let Some(satisfying_values) = satisfying_values {
+                            if let Some(satisfying_values) = _satisfying_values {
                                 for s_val in satisfying_values {
                                     // Iterate over the key-value pairs in each map
-                                    let mut expr_with_values = rhsExpr.as_str().to_string();
+                                    let mut expr_with_values = rhs_expr.as_str().to_string();
                                     println!("rhs = {:?}", s_val);
                                     for (variable_name, value) in s_val {
                                         // Replace each variable in the RHS with its value
@@ -419,7 +417,7 @@ impl QuantifierVisitor {
                                 "No concrete Upper bound, but the passed in bound is: {}, {:?}",
                                 datum.finite_bound, missing_vars
                             );
-                            let (upper_bound, lower_bound) = Self::find_bounds(expr); // Find upper bound, lower may be defaulted
+                            let (upper_bound, _lower_bound) = Self::find_bounds(expr); // Find upper bound, lower may be defaulted
                                                                                       // Since lower bound is likely not determined, handle this case accordingly
                             println!("Lower bound found: {}, And Upper bound is not applicable in this context.", upper_bound);
 
@@ -465,7 +463,7 @@ impl QuantifierVisitor {
 
                                     // Generate RHS expressions based on satisfying values
                                     for s_val in satisfying_values {
-                                        let mut expr_with_values = rhsExpr.as_str().to_string();
+                                        let mut expr_with_values = rhs_expr.as_str().to_string();
                                         for (variable_name, value) in s_val {
                                             let pattern =
                                                 format!(r"\b{}\b", regex::escape(&variable_name));
@@ -697,7 +695,7 @@ impl QuantifierVisitor {
     // Constant < x < Bound
     // Constant < x < y < Bound
     // With comparison operators {< , <= , >, >=}
-    fn evalForallBounds(
+    fn eval_forall_bounds(
         expr: &str,
         variables: &HashMap<String, usize>,
         lower_bound: usize,
@@ -789,7 +787,7 @@ impl QuantifierVisitor {
         upper_bound: usize,
     ) -> Vec<HashMap<String, usize>> {
         let mut satisfying_combinations = Vec::new();
-        let parts: Vec<&str> = expr.split_whitespace().collect();
+        let _parts: Vec<&str> = expr.split_whitespace().collect();
 
         // Gather variable names from the expression
         let variable_names: Vec<String> = variables.keys().cloned().collect();

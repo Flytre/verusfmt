@@ -52,8 +52,8 @@ impl RangeBoundsVisitor {
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
         let mut param_list = None;
-        let mut fn_qualifier = None;
-        let mut req_expr = None;
+        let mut _fn_qualifier = None;
+        let mut _req_expr = None;
         let mut param_map = HashMap::new();
         let mut is_spec_mode = false; // Flag to check if fn_mode is "spec"
 
@@ -63,12 +63,12 @@ impl RangeBoundsVisitor {
                     param_list = Some(inner_pair.clone());
                 }
                 Rule::fn_qualifier => {
-                    fn_qualifier = Some(inner_pair.clone());
+                    _fn_qualifier = Some(inner_pair.clone());
                     let inner_qualifier = inner_pair.clone().into_inner();
                     for inner_inner_qualifier in inner_qualifier {
                         match inner_inner_qualifier.as_rule() {
                             Rule::requires_clause => {
-                                req_expr = Some(inner_inner_qualifier.clone());
+                                _req_expr = Some(inner_inner_qualifier.clone());
                             }
                             _ => {}
                         }
