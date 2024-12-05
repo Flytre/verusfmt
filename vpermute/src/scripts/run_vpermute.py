@@ -58,12 +58,12 @@ def generate_diff_csv(experiments_dir, output_csv, debug_enabled):
                 )
                 same = diff_result.returncode == 0
                 debug_print(debug_enabled, f"DEBUG: Result for {file1} vs {file2}: {'Same' if same else 'Different'}")
+                
+                # Only write to CSV if the files are different
+                if not same:
+                    writer.writerow([file1, file2, "No"])
             except Exception as e:
                 print(f"Error running diff between {file1} and {file2}: {e}")
-                same = False
-
-            # Write result to CSV
-            writer.writerow([file1, file2, "Yes" if same else "No"])
 
 def execute_experiment(experiment, working_dir):
     """Run a single experiment."""
