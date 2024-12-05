@@ -2,7 +2,6 @@ use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgr
 use crate::Rule;
 use crate::VerusParser;
 use pest::iterators::{Pair, Pairs};
-use std::collections::HashMap;
 
 pub struct LoopVisitor {
     target_name: String,

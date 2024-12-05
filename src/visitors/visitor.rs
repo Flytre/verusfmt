@@ -649,7 +649,7 @@ impl FunctionInlineVisitor {
         while let Some(inner_pair) = inner_pairs.next() {
             match inner_pair.as_rule() {
                 Rule::expr_inner => {
-                    let mut nested_pairs = inner_pair.clone().into_inner();
+                    let nested_pairs = inner_pair.clone().into_inner();
                     if let Some(function_pair) = nested_pairs
                         .clone()
                         .find(|p| p.as_rule() == Rule::path_expr_no_generics)

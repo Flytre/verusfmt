@@ -2,7 +2,6 @@ use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgr
 use crate::Rule;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
 use regex::Regex;
-use std::collections::HashMap;
 
 // Define a new struct for your custom visitor
 pub struct LambdaVisitor {
@@ -56,7 +55,7 @@ impl LambdaVisitor {
                     break;
                 }
                 Rule::r#type => {
-                    if (inner_pair.as_str().contains("Seq")) {
+                    if inner_pair.as_str().contains("Seq") {
                         is_seq_type = true;
                     }
                 }
@@ -136,7 +135,7 @@ impl LambdaVisitor {
                         _ => {}
                     }
                 }
-                if (is_seq_type) {
+                if is_seq_type {
                     // basic type check.
                     if let (Some(ref closure_expr), Some(ref filter_var_name)) =
                         (closure_expr, filter_var_name)
@@ -195,7 +194,7 @@ impl LambdaVisitor {
 
                             ////
                             let mut expr_with_values = None;
-                            for (variable_name) in closure_param_names {
+                            for variable_name in closure_param_names {
                                 // Replace each variable in the RHS with its value
                                 let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
                                 let regex = Regex::new(&pattern).unwrap();

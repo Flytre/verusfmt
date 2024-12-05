@@ -1,6 +1,5 @@
 use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgram, VerusVisitor};
 use crate::Rule;
-use crate::VerusParser;
 use lazy_static::lazy_static;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
 use std::collections::HashMap;
@@ -55,11 +54,11 @@ impl SetSubsetVisitor {
         while let Some(inner_pair) = inner_pairs.next() {
             match inner_pair.as_rule() {
                 Rule::pat => {
-                    let mut pat_pair = inner_pair.clone();
+                    let pat_pair = inner_pair.clone();
                     receiving_var = Some(pat_pair.as_str().to_string());
                 }
                 Rule::r#type => {
-                    let mut type_pair = inner_pair.clone();
+                    let type_pair = inner_pair.clone();
                     type_str = Some(type_pair.as_str().to_string());
                 }
                 _ => {}

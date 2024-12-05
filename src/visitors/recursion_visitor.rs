@@ -47,7 +47,7 @@ impl RecursionVisitor {
 
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
 
-        let mut recursive_fncs = RECURSIVE_FNCS.lock().unwrap();
+        let recursive_fncs = RECURSIVE_FNCS.lock().unwrap();
 
         for (key, value) in recursive_fncs.iter() {
             // println!("Key: {}, Value: {}", key, value);
@@ -94,13 +94,13 @@ impl RecursionVisitor {
         for inner_pair in expr_clone.clone().into_inner() {
             match inner_pair.as_rule() {
                 Rule::expr_inner => {
-                    let mut nested_pairs = inner_pair.clone().into_inner();
+                    let nested_pairs = inner_pair.clone().into_inner();
                     if let Some(function_pair) = nested_pairs
                         .clone()
                         .find(|p| p.as_rule() == Rule::path_expr_no_generics)
                     {
                         function_name = Some(function_pair.as_str().to_string());
-                        if let (Some(function_name)) = (function_name.clone()) {}
+                        if let Some(function_name) = function_name.clone() {}
                     }
                 }
                 Rule::arg_list => {

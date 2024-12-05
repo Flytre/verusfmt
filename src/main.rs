@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser as ClapParser, ValueEnum};
 use fs_err as fs;
-use miette::{miette, IntoDiagnostic, Result}; // Ensure miette is imported
+use miette::{miette, IntoDiagnostic}; // Ensure miette is imported
 use std::collections::HashMap;
 use tracing::{error, info}; // debug, trace, warn
 use verusfmt::RustFmtConfig;

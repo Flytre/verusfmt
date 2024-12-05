@@ -60,16 +60,16 @@ impl ModularFlattenerVisitor {
         while let Some(inner_pair) = inner_pairs.next() {
             match inner_pair.as_rule() {
                 Rule::pat => {
-                    let mut pat_pair = inner_pair.clone();
+                    let pat_pair = inner_pair.clone();
                     receiving_var = Some(pat_pair.as_str().to_string());
                 }
                 Rule::expr => {
-                    let mut expr_pair = inner_pair.clone();
+                    let expr_pair = inner_pair.clone();
                     let mut inner_expr_pairs = expr_pair.clone().into_inner();
                     while let Some(inner_expr_pair) = inner_expr_pairs.next() {
                         match inner_expr_pair.as_rule() {
                             Rule::expr_inner => {
-                                let mut nested_pairs = inner_expr_pair.clone().into_inner();
+                                let nested_pairs = inner_expr_pair.clone().into_inner();
                                 if let Some(function_pair) = nested_pairs
                                     .clone()
                                     .find(|p| p.as_rule() == Rule::path_expr_no_generics)
@@ -322,7 +322,7 @@ impl ModularFlattenerVisitor {
         while let Some(inner_pair) = inner_pairs.next() {
             match inner_pair.as_rule() {
                 Rule::expr_inner => {
-                    let mut nested_pairs = inner_pair.clone().into_inner();
+                    let nested_pairs = inner_pair.clone().into_inner();
                     if let Some(function_pair) = nested_pairs
                         .clone()
                         .find(|p| p.as_rule() == Rule::path_expr_no_generics)
@@ -345,7 +345,7 @@ impl ModularFlattenerVisitor {
             }
         }
 
-        if let (Some(function_name)) = (function_name) {
+        if let Some(function_name) = function_name {
             if let Some(function_body) = datum.fn_map.get(&function_name) {
                 // println!("Expr = {:?} {:?}", pair.as_str(), pair.as_rule());
 
@@ -365,7 +365,7 @@ impl ModularFlattenerVisitor {
                     // println!(" parent = {:?} , called = {:?}",parent_mode.as_str().to_string() , called_mode.as_str().to_string() );
 
                     // if(parent_mode.as_str().to_string() == called_mode.as_str().to_string() && called_mode.as_str().to_string() != "fn".to_string()){ // temporary restriction for "fns"
-                    if (called_mode.as_str().to_string() != "fn".to_string()) {
+                    if called_mode.as_str().to_string() != "fn".to_string() {
                         // temporary restriction for "fns" (but still allow proof and spec to be flattened)
 
                         let mut function_body = function_body.clone();

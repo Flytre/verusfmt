@@ -1,7 +1,6 @@
 use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgram, VerusVisitor};
 use crate::Rule;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
-use std::collections::HashMap;
 
 // Define a new struct for your custom visitor
 pub struct StripProofVisitor {
@@ -42,13 +41,13 @@ impl StripProofVisitor {
         let mut inner_pairs = pair.clone().into_inner();
         if let Some(first_pair) = inner_pairs.next() {
             // println!("AT Iner Stmt {:?}, {:?}", first_pair.as_str(), first_pair.as_rule());
-            if (first_pair.as_rule() == Rule::proof_block) {
+            if first_pair.as_rule() == Rule::proof_block {
                 // do nothing -- i.e. remove proof block
             } else {
                 let mut inner_inner_pairs = first_pair.clone().into_inner();
                 if let Some(first_inner_pair) = inner_inner_pairs.next() {
                     // println!("AT Iner  Inner Stmt {:?}, {:?}", first_inner_pair.as_str(), first_inner_pair.as_rule());
-                    if (first_pair.as_rule() == Rule::let_stmt) {
+                    if first_pair.as_rule() == Rule::let_stmt {
                         VerusVisitor::visit_all(datum, first_pair.into_inner(), handlers);
                     }
                     let mut inner_inner_inner_pairs = first_inner_pair.clone().into_inner();

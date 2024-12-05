@@ -1,7 +1,6 @@
 use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgram, VerusVisitor};
 use crate::Rule;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
-use std::collections::HashMap;
 
 // Define a new struct for your custom visitor
 pub struct SimpleVisitor {

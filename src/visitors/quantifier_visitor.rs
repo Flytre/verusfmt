@@ -2,7 +2,6 @@ use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgr
 use crate::Rule;
 use crate::VerusParser;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
-use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -110,7 +109,7 @@ impl QuantifierVisitor {
                                     let mut inner_param_pairs =
                                         quant_param_pair.clone().into_inner();
                                     let mut var_name = "";
-                                    let mut var_type = "";
+                                    let var_type = "";
                                     while let Some(inner_param_pair) = inner_param_pairs.next() {
                                         // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
                                         match inner_param_pair.as_rule() {
@@ -243,7 +242,7 @@ impl QuantifierVisitor {
                             // println!("paramPair = {:?} :: {:?}",quant_param_pair.as_rule(), quant_param_pair.as_str());
                             let mut inner_param_pairs = quant_param_pair.clone().into_inner();
                             let mut var_name = "";
-                            let mut var_type = "";
+                            let var_type = "";
                             while let Some(inner_param_pair) = inner_param_pairs.next() {
                                 // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
                                 match inner_param_pair.as_rule() {
@@ -290,7 +289,7 @@ impl QuantifierVisitor {
                             Self::check_missing_variables_from_expr(expr, &variables);
 
                         //TODO Clean-up code
-                        if (all_found) {
+                        if all_found {
                             let (lower_bound, upper_bound) = Self::find_bounds(expr); // Find both bounds
                             println!(
                                 "Upper bound found: {},lower bound Found {}. {:?}",
@@ -424,7 +423,7 @@ impl QuantifierVisitor {
                                                                                       // Since lower bound is likely not determined, handle this case accordingly
                             println!("Lower bound found: {}, And Upper bound is not applicable in this context.", upper_bound);
 
-                            if (missing_vars.len() == 1) {
+                            if missing_vars.len() == 1 {
                                 //[assumption for now]
                                 let missing_var = &missing_vars[0]; // Get the missing variable
 
