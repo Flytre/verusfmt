@@ -1,4 +1,5 @@
 pub mod collections_visitor;
+pub mod function_inline_visitor;
 pub mod lambda_visitor;
 pub mod loop_visitor;
 pub mod modular_flattener_visitor;
