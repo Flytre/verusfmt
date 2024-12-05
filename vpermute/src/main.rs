@@ -1,14 +1,35 @@
 use anyhow::{Context, Result};
-use permutohedron::LexicalPermutation;
+use clap::Parser;
+use itertools::Itertools; // Import itertools for permutations
 use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 use uuid::Uuid;
 
-fn run_permutation(path: &Path, ordering: &Vec<&str>) -> Result<()> {
-    let original_file_name = path.file_name().unwrap().to_str().unwrap();
+/// Command-line arguments structure
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// File path to process
+    #[arg(short, long)]
+    file: String,
 
+    /// Comma-separated list of visitors
+    #[arg(short, long)]
+    visitors: String,
+
+    /// Enable debug printing
+    #[arg(long)]
+    debug: bool,
+}
+
+fn run_permutation(path: &Path, ordering: &Vec<&str>, debug: bool) -> Result<()> {
+    if debug {
+        println!("DEBUG: Starting permutation for {:?}", ordering);
+    }
+
+    let original_file_name = path.file_name().unwrap().to_str().unwrap();
     let temp_files_dir = "../tempFiles";
 
     // 1. Copy the file to a random path so the output files don't collide
@@ -32,8 +53,6 @@ fn run_permutation(path: &Path, ordering: &Vec<&str>) -> Result<()> {
     let status = Command::new("sh")
         .arg("-c")
         .arg(cmd.clone())
-	.stdout(std::process::Stdio::null())
-	.stderr(std::process::Stdio::null())
         .status()
         .with_context(|| format!("Failed to execute command: {}", cmd))?;
 
@@ -41,40 +60,47 @@ fn run_permutation(path: &Path, ordering: &Vec<&str>) -> Result<()> {
         anyhow::bail!("Failed to run command for permutation {:?}", ordering);
     }
 
-    let experiment_dir = format!("../experiment/{}", original_file_name);
+    let experiment_dir = format!("../permutation_experiments/{}", original_file_name);
     fs::create_dir_all(&experiment_dir)
         .with_context(|| format!("Failed to create experiment directory: {}", &experiment_dir))?;
 
     let output_path = format!("{}/{}.rs", experiment_dir, ordering.join(","));
-
     fs::copy(&output_file, &output_path)
         .with_context(|| format!("Failed to copy output file to {}", output_path))?;
 
     fs::remove_file(rand_path)
         .with_context(|| format!("Failed to delete uuid file {}", rand_name))?;
 
+    if debug {
+        println!("DEBUG: Successfully processed permutation {:?}", ordering);
+    }
     Ok(())
 }
 
-
 fn main() {
-    //CONFIGURE THIS:
-    let mut visitors: Vec<&str> = vec!["FunctionInlineVisitor", "QuantifierVisitor"];
-    let file_path: &str = "../examples/recur.rs";
+    // Parse command-line arguments
+    let args = Args::parse();
 
-    let path = Path::new(file_path);
+    // Extract file path and visitors
+    let file_path = args.file;
+    let visitors: Vec<&str> = args.visitors.split(',').collect();
+    let debug = args.debug;  // Get the debug flag
 
-    let mut perms: Vec<Vec<&str>> = vec![];
+    let path = Path::new(&file_path);
 
-    loop {
-        perms.push(visitors.clone());
-        if !visitors.next_permutation() {
-            break;
+    // Generate permutations using itertools
+    let perms: Vec<Vec<&str>> = visitors.clone().into_iter().permutations(visitors.len()).collect();
+
+    if debug {
+        println!("DEBUG: Total permutations generated: {}", perms.len());
+        for perm in &perms {
+            println!("DEBUG: Visitors for this permutation: {:?}", perm);
         }
     }
 
+    // Run permutations in parallel
     perms.par_iter().for_each(|perm| {
-        if let Err(e) = run_permutation(path, perm) {
+        if let Err(e) = run_permutation(path, perm, debug) {
             eprintln!("Error with permutation {:?}: {}", perm, e);
         }
     });

@@ -5,3 +5,4 @@ experiment_logs/*.txt
 .verus-log/
 reconstructed_output.reconstructed_output.rs
 .DS_Store
+permutation_experiments/*
