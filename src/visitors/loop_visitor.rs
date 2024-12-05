@@ -4,12 +4,12 @@ use crate::VerusParser;
 use pest::iterators::{Pair, Pairs};
 
 pub struct LoopVisitor {
-    target_name: String,
+    _target_name: String,
 }
 
 impl LoopVisitor {
     pub fn new(target_name: String) -> Self {
-        LoopVisitor { target_name }
+        LoopVisitor { _target_name: target_name }
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {

@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use permutohedron::LexicalPermutation;
+use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -31,6 +32,8 @@ fn run_permutation(path: &Path, ordering: &Vec<&str>) -> Result<()> {
     let status = Command::new("sh")
         .arg("-c")
         .arg(cmd.clone())
+	.stdout(std::process::Stdio::null())
+	.stderr(std::process::Stdio::null())
         .status()
         .with_context(|| format!("Failed to execute command: {}", cmd))?;
 
@@ -53,18 +56,28 @@ fn run_permutation(path: &Path, ordering: &Vec<&str>) -> Result<()> {
     Ok(())
 }
 
+
 fn main() {
-    //parameters
+    //CONFIGURE THIS:
     let mut visitors: Vec<&str> = vec!["FunctionInlineVisitor", "QuantifierVisitor"];
     let file_path: &str = "../examples/recur.rs";
 
     let path = Path::new(file_path);
 
+    let mut perms: Vec<Vec<&str>> = vec![];
+
     loop {
-        run_permutation(path, &visitors).unwrap();
+        perms.push(visitors.clone());
         if !visitors.next_permutation() {
             break;
         }
     }
+
+    perms.par_iter().for_each(|perm| {
+        if let Err(e) = run_permutation(path, perm) {
+            eprintln!("Error with permutation {:?}: {}", perm, e);
+        }
+    });
+
     println!("done!");
 }

@@ -4,12 +4,12 @@ use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
 
 // Define a new struct for your custom visitor
 pub struct RevealVisitor {
-    target_name: String, // Store target_name within RevealVisitor
+    _target_name: String, // Store target_name within RevealVisitor
 }
 
 impl RevealVisitor {
     pub fn new(target_name: String) -> Self {
-        RevealVisitor { target_name } // Return an instance of RevealVisitor
+        RevealVisitor { _target_name: target_name } // Return an instance of RevealVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {

@@ -14,12 +14,12 @@ lazy_static! {
 }
 // Define a new struct for your custom visitor
 pub struct SetSubsetVisitor {
-    target_name: String, // Store target_name within SetSubsetVisitor
+    _target_name: String, // Store target_name within SetSubsetVisitor
 }
 
 impl SetSubsetVisitor {
     pub fn new(target_name: String) -> Self {
-        SetSubsetVisitor { target_name } // Return an instance of SetSubsetVisitor
+        SetSubsetVisitor { _target_name: target_name } // Return an instance of SetSubsetVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {

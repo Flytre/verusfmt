@@ -5,7 +5,6 @@ use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use std::collections::HashMap;
 pub trait HasProgram {
-    fn program(&self) -> &String;
     fn program_mut(&mut self) -> &mut String;
 }
 
@@ -514,17 +513,8 @@ pub struct CoreDatum {
 
 // Implement HasProgram for CoreDatum
 impl HasProgram for CoreDatum {
-    fn program(&self) -> &String {
-        &self.program
-    }
-
     fn program_mut(&mut self) -> &mut String {
         &mut self.program
-    }
-}
-impl CoreDatum {
-    pub fn get_target_name(&self) -> &String {
-        &self.target_name
     }
 }
 
@@ -771,10 +761,6 @@ pub struct InlinerDatum {
 }
 
 impl HasProgram for InlinerDatum {
-    fn program(&self) -> &String {
-        &self.program
-    }
-
     fn program_mut(&mut self) -> &mut String {
         &mut self.program
     }

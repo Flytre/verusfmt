@@ -7,12 +7,12 @@ use std::collections::HashMap;
 
 // Define a new struct for your custom visitor
 pub struct QuantifierVisitor {
-    target_name: String, // Store target_name within QuantifierVisitor
+    _target_name: String, // Store target_name within QuantifierVisitor
 }
 
 impl QuantifierVisitor {
     pub fn new(target_name: String) -> Self {
-        QuantifierVisitor { target_name } // Return an instance of QuantifierVisitor
+        QuantifierVisitor { _target_name: target_name } // Return an instance of QuantifierVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
@@ -801,7 +801,7 @@ impl QuantifierVisitor {
             }
 
             // Evaluate the expression with the current combination
-            if Self::evalForallBounds(expr, variables, lower_bound, upper_bound) {
+            if Self::eval_forall_bounds(expr, variables, lower_bound, upper_bound) {
                 satisfying_combinations.push(variables.clone());
             }
 

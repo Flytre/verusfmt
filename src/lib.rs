@@ -1691,25 +1691,25 @@ fn parse_and_format(
             let collections_visitor = visitors::collections_visitor::CollectionsVisitor::new(
                 visit_dat.target_name.clone(),
             );
-            collectionsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            collections_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "LambdaVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let lambda_visitor =
                 visitors::lambda_visitor::LambdaVisitor::new(visit_dat.target_name.clone());
-            lambdaVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            lambda_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "LoopVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let loop_visitor =
                 visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
-            loopVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            loop_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "ModularFlattenerVisitor" => {
             // Create an instance of ModularFlattenerVisitor with the target_name from CoreDatum
             let modular_flattener_visitor =
                 visitors::modular_flattener_visitor::ModularFlattenerVisitor::new();
-            modularFlattenerVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            modular_flattener_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "RangeBoundsVisitor" => {
             // Create an instance of RangeBoundsVisitor with the target_name from CoreDatum
@@ -1720,45 +1720,45 @@ fn parse_and_format(
             //     program: visit_dat.program.clone(),
             //     param_map: HashMap::new(),
             // };
-            rangeBoundsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            range_bounds_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
                                                                   // visit_dat.program = range_dat.program; //todo - clean up
         }
         "RecursionVisitor" => {
             // Create an instance of RecursionVisitor with the target_name from CoreDatum
             let recursion_visitor =
                 visitors::recursion_visitor::RecursionVisitor::new(visit_dat.target_name.clone());
-            recursionVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            recursion_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "RevealVisitor" => {
             // Create an instance of RevealVisitor with the target_name from CoreDatum
             let reveal_visitor =
                 visitors::reveal_visitor::RevealVisitor::new(visit_dat.target_name.clone());
-            revealVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            reveal_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "SetSubsetVisitor" => {
             // Create an instance of RevealVisitor with the target_name from CoreDatum
             let set_subset_visitor =
                 visitors::set_subset_visitor::SetSubsetVisitor::new(visit_dat.target_name.clone());
-            setSubsetVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            set_subset_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
             let simple_visitor =
                 visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
-            simpleVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            simple_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "StripProofVisitor" => {
             // Create an instance of StripProofVisitor with the target_name from CoreDatum
             let strip_proof_visitor = visitors::strip_proof_visitor::StripProofVisitor::new(
                 visit_dat.target_name.clone(),
             );
-            stripProofVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            strip_proof_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
             // Create an instance of QuantifierVisitor with the target_name from CoreDatum
             let quantifier_visitor =
                 visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
-            quantifierVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            quantifier_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
     }

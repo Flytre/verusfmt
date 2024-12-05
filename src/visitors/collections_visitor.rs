@@ -14,12 +14,12 @@ lazy_static! {
 }
 // Define a new struct for your custom visitor
 pub struct CollectionsVisitor {
-    target_name: String, // Store target_name within CollectionsVisitor
+    _target_name: String, // Store target_name within CollectionsVisitor
 }
 
 impl CollectionsVisitor {
     pub fn new(target_name: String) -> Self {
-        CollectionsVisitor { target_name } // Return an instance of CollectionsVisitor
+        CollectionsVisitor { _target_name: target_name } // Return an instance of CollectionsVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {

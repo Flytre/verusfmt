@@ -6,12 +6,12 @@ use regex::Regex;
 
 // Define a new struct for your custom visitor
 pub struct LambdaVisitor {
-    target_name: String, // Store target_name within LambdaVisitor
+    _target_name: String, // Store target_name within LambdaVisitor
 }
 
 impl LambdaVisitor {
     pub fn new(target_name: String) -> Self {
-        LambdaVisitor { target_name } // Return an instance of LambdaVisitor
+        LambdaVisitor { _target_name: target_name } // Return an instance of LambdaVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
@@ -151,13 +151,13 @@ impl LambdaVisitor {
                                     Rule::param => {
                                         // println!("paramPair = {:?} :: {:?}",param_pair.as_rule(), param_pair.as_str());
                                         let mut inner_param_pairs = param_pair.clone().into_inner();
-                                        let mut filter_var_name = "";
+                                        let mut _filter_var_name = "";
                                         while let Some(inner_param_pair) = inner_param_pairs.next(){
                                             // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
                                             match inner_param_pair.as_rule() {
                                                 Rule::pat_no_top_alt => {
-                                                        filter_var_name = inner_param_pair.clone().as_str();
-                                                        closure_param_names.push(filter_var_name.to_string());
+                                                        _filter_var_name = inner_param_pair.clone().as_str();
+                                                        closure_param_names.push(_filter_var_name.to_string());
                
                                                 }
                                                 _ => {}

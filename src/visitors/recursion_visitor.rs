@@ -12,12 +12,12 @@ lazy_static! {
 }
 
 pub struct RecursionVisitor {
-    target_name: String, // Store target_name within RecursionVisitor
+    _target_name: String, // Store target_name within RecursionVisitor
 }
 
 impl RecursionVisitor {
     pub fn new(target_name: String) -> Self {
-        RecursionVisitor { target_name } // Return an instance of RecursionVisitor
+        RecursionVisitor { _target_name: target_name } // Return an instance of RecursionVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {

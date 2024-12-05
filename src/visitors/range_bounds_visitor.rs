@@ -22,12 +22,12 @@ use std::collections::HashMap;
 
 // Define a new struct for your custom visitor
 pub struct RangeBoundsVisitor {
-    target_name: String, // Store target_name within RangeBoundsVisitor
+    _target_name: String, // Store target_name within RangeBoundsVisitor
 }
 
 impl RangeBoundsVisitor {
     pub fn new(target_name: String) -> Self {
-        RangeBoundsVisitor { target_name } // Return an instance of RangeBoundsVisitor
+        RangeBoundsVisitor { _target_name: target_name } // Return an instance of RangeBoundsVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
