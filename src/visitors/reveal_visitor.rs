@@ -1,6 +1,6 @@
+use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgram, VerusVisitor};
 use crate::Rule;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
-use crate::{visitors::visitor::{CoreDatum, HasProgram, HandlerInterface, HandlerMap, VerusVisitor}};
 use std::collections::HashMap;
 
 // Define a new struct for your custom visitor
@@ -22,9 +22,12 @@ impl RevealVisitor {
 
     pub fn visit_all(&self, datum: &mut CoreDatum, pairs: Pairs<Rule>) {
         let handler_map = Self::create_custom_handler_map();
-        VerusVisitor::visit_all(datum, pairs, &handler_map as &dyn HandlerInterface<CoreDatum>);
+        VerusVisitor::visit_all(
+            datum,
+            pairs,
+            &handler_map as &dyn HandlerInterface<CoreDatum>,
+        );
     }
-
 
     fn visit_attr_core<T: HasProgram>(
         datum: &mut T,
@@ -44,18 +47,19 @@ impl RevealVisitor {
                     // println!("inner_inner__inner_pair = {:?} {:?}", inner_inner_inner_pair.as_rule(), inner_inner_inner_pair.as_str());
                     match inner_inner_inner_pair.as_rule() {
                         Rule::path_segment => {
-                            if(inner_inner_inner_pair.as_str() == "opaque"){is_opaque = true;}
-                        },
+                            if (inner_inner_inner_pair.as_str() == "opaque") {
+                                is_opaque = true;
+                            }
+                        }
                         _ => {}
                     }
                 }
             }
         }
-        //if attribute is 'opaque` -> remove the attribute. 
+        //if attribute is 'opaque` -> remove the attribute.
         //[TODO] - a better approach would be to add appropriate "reveals"
-        if(!is_opaque){ 
+        if (!is_opaque) {
             datum.program_mut().push_str(&format!("{} ", pair.as_str()));
         }
     }
-
 }

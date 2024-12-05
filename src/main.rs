@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use clap::{Parser as ClapParser, ValueEnum};
 use fs_err as fs;
 use miette::{miette, IntoDiagnostic, Result}; // Ensure miette is imported
+use std::collections::HashMap;
 use tracing::{error, info}; // debug, trace, warn
 use verusfmt::RustFmtConfig;
-use std::collections::HashMap;
 
 /// A collection of options that should not be relied upon existing long-term, added primarily for
 /// verusfmt developers to use.
@@ -79,7 +79,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         println!("Starting Visitor = {}", visitor);
         let count = visitor_count.entry(visitor.to_string()).or_insert(0);
         let current_count = *count; // Get the current count for this visitor
-           // Update the count for the next iteration
+                                    // Update the count for the next iteration
         *count += 1;
 
         let file_stem = file.file_stem().unwrap().to_string_lossy();
@@ -89,22 +89,17 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         } else {
             file_stem.as_ref() // Return the original if no prefix
         };
-        
+
         // Generate the formatted file name for the current visitor
         let formatted_file_name = if let Some(bound) = args.bound {
             format!(
                 "./tempFiles/{}_formatted_{}_{}_bound_{}.rs",
-                cleaned_stem,
-                visitor,
-                current_count,
-                bound
+                cleaned_stem, visitor, current_count, bound
             )
         } else {
             format!(
                 "./tempFiles/{}_formatted_{}_{}.rs",
-                cleaned_stem,
-                visitor,
-                current_count
+                cleaned_stem, visitor, current_count
             )
         };
         // Update run_options to use the new formatted file name
@@ -116,9 +111,14 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             print_failed: args.print_failed,
         };
         // Call run with the current output and the visitor name
-        let formatted_output = verusfmt::run(&current_output, run_options, visitor, args.failed_assertion.clone())?;
+        let formatted_output = verusfmt::run(
+            &current_output,
+            run_options,
+            visitor,
+            args.failed_assertion.clone(),
+        )?;
         // let formatted_file_path = file.with_file_name(formatted_file_name.clone()).to_string();
-        
+
         // let cleaned_formatted_file_path = if formatted_file_path.starts_with("tempFiles/./tempFiles/") {
         //     &formatted_file_path["tempFiles/".len()..] // Strip the prefix
         // } else {
@@ -126,7 +126,10 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         // };
         // Write the cloned output to file
         fs::write(formatted_file_name.clone(), formatted_output.clone()).into_diagnostic()?;
-        println!("written visitor pass to file: {}", formatted_file_name.clone());
+        println!(
+            "written visitor pass to file: {}",
+            formatted_file_name.clone()
+        );
         // Update current_output for the next visitor
         current_output = formatted_output; // Now this can directly use the original value
     }
@@ -152,7 +155,10 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
             println!("{diff}");
             Err(miette!("invalid formatting"))
         }
-    } else if matches!(args.unstable_command, Some(UnstableCommand::IdempotencyTest)) {
+    } else if matches!(
+        args.unstable_command,
+        Some(UnstableCommand::IdempotencyTest)
+    ) {
         let run_options = verusfmt::RunOptions {
             file_name: Some(file.to_string_lossy().into()),
             run_rustfmt: !args.verus_only,
@@ -162,7 +168,12 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         };
 
         let my_str: &str = "example";
-        let reformatted = verusfmt::run(&current_output, run_options, "CoreVerusVisitor", Some(my_str.to_string()))?;
+        let reformatted = verusfmt::run(
+            &current_output,
+            run_options,
+            "CoreVerusVisitor",
+            Some(my_str.to_string()),
+        )?;
         if current_output == reformatted {
             return Err(miette!("✨Idempotent run✨"));
         } else {
@@ -186,7 +197,6 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         Ok(())
     }
 }
-
 
 fn main() -> miette::Result<()> {
     let args = Args::parse();

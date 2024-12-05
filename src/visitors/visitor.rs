@@ -654,9 +654,9 @@ impl FunctionInlineVisitor {
                         .clone()
                         .find(|p| p.as_rule() == Rule::path_expr_no_generics)
                     {
-			if !(function_pair.as_str().contains("::")) {
+                        if !(function_pair.as_str().contains("::")) {
                             function_name = Some(function_pair.as_str().to_string());
-			}
+                        }
                         prev = true;
                     }
                 }
