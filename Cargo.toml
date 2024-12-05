@@ -57,7 +57,7 @@ inherits = "release"
 lto = "thin"
 
 [workspace]
-members = ["glob-macro"]
+members = ["glob-macro", "vpermute"]
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]

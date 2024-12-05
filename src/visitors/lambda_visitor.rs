@@ -1,18 +1,17 @@
 use crate::Rule;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
 use crate::{visitors::visitor::{CoreDatum, HasProgram, HandlerInterface, HandlerMap, VerusVisitor}};
-use std::collections::HashMap;
 use regex::Regex;
 
 
 // Define a new struct for your custom visitor
 pub struct LambdaVisitor {
-    target_name: String, // Store target_name within LambdaVisitor
+    _target_name: String, // Store target_name within LambdaVisitor
 }
 
 impl LambdaVisitor {
     pub fn new(target_name: String) -> Self {
-        LambdaVisitor { target_name } // Return an instance of LambdaVisitor
+        LambdaVisitor { _target_name: target_name } // Return an instance of LambdaVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
@@ -53,7 +52,7 @@ impl LambdaVisitor {
                     break;
                 },
                 Rule::r#type  => {
-                    if(inner_pair.as_str().contains("Seq")){
+                    if inner_pair.as_str().contains("Seq") {
                         is_seq_type = true;
                     }
                 },
@@ -94,7 +93,7 @@ impl LambdaVisitor {
                                                                         Rule::closure_expr => {
                                                                             closure_expr = Some(inner_comma_delimited_exprs_expr_expr_inner_pair.clone()); // Update the outer `let_expr`
                                                                             let mut inner_comma_closure_expr_pairs = inner_comma_delimited_exprs_expr_expr_inner_pair.clone().into_inner();
-                                                                            while let Some(inner_comma_closure_expr_pair) = inner_comma_closure_expr_pairs.next() {
+                                                                            while let Some(_inner_comma_closure_expr_pair) = inner_comma_closure_expr_pairs.next() {
                                                                                 // println!("inner inner_comma_closure_expr_pair = {:?} :: {:?}", inner_comma_closure_expr_pair.as_rule(), inner_comma_closure_expr_pair.as_str());
                                                                                 
                                                                             }
@@ -120,7 +119,7 @@ impl LambdaVisitor {
                         _ => {}
                     }
                 }
-                if(is_seq_type){ // basic type check. 
+                if is_seq_type { // basic type check. 
                     if let (Some(ref closure_expr), Some(ref filter_var_name)) = (closure_expr,filter_var_name) {
                         let mut filter_expr: Option<Pair<Rule>> = None; 
                         let mut closure_param_list = None;
@@ -152,13 +151,13 @@ impl LambdaVisitor {
                                     Rule::param => {
                                         // println!("paramPair = {:?} :: {:?}",param_pair.as_rule(), param_pair.as_str());
                                         let mut inner_param_pairs = param_pair.clone().into_inner();
-                                        let mut filter_var_name = "";
+                                        let mut _filter_var_name = "";
                                         while let Some(inner_param_pair) = inner_param_pairs.next(){
                                             // println!("inner_param_pair = {:?} :: {:?}",inner_param_pair.as_rule(), inner_param_pair.as_str());
                                             match inner_param_pair.as_rule() {
                                                 Rule::pat_no_top_alt => {
-                                                        filter_var_name = inner_param_pair.clone().as_str();
-                                                        closure_param_names.push(filter_var_name.to_string());
+                                                        _filter_var_name = inner_param_pair.clone().as_str();
+                                                        closure_param_names.push(_filter_var_name.to_string());
                
                                                 }
                                                 _ => {}
@@ -171,7 +170,7 @@ impl LambdaVisitor {
 
                             ////
                             let mut expr_with_values = None;
-                            for (variable_name) in closure_param_names {
+                            for variable_name in closure_param_names {
                                 // Replace each variable in the RHS with its value
                                 let pattern = format!(r"\b{}\b", regex::escape(&variable_name));
                                 let regex = Regex::new(&pattern).unwrap();
@@ -217,7 +216,4 @@ impl LambdaVisitor {
             
         
     }
-    
-
-
 }

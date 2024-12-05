@@ -1,16 +1,15 @@
+use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgram, VerusVisitor};
 use crate::Rule;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
-use crate::{visitors::visitor::{CoreDatum, HasProgram, HandlerInterface, HandlerMap, VerusVisitor}};
-use std::collections::HashMap;
 
 // Define a new struct for your custom visitor
 pub struct SimpleVisitor {
-    target_name: String, // Store target_name within SimpleVisitor
+    _target_name: String, // Store target_name within SimpleVisitor
 }
 
 impl SimpleVisitor {
     pub fn new(target_name: String) -> Self {
-        SimpleVisitor { target_name } // Return an instance of SimpleVisitor
+        SimpleVisitor { _target_name: target_name } // Return an instance of SimpleVisitor
     }
 
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
@@ -23,7 +22,11 @@ impl SimpleVisitor {
 
     pub fn visit_all(&self, datum: &mut CoreDatum, pairs: Pairs<Rule>) {
         let handler_map = Self::create_custom_handler_map();
-        VerusVisitor::visit_all(datum, pairs, &handler_map as &dyn HandlerInterface<CoreDatum>);
+        VerusVisitor::visit_all(
+            datum,
+            pairs,
+            &handler_map as &dyn HandlerInterface<CoreDatum>,
+        );
     }
 
     fn visit_identifier(
@@ -45,13 +48,6 @@ impl SimpleVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        let name = pair
-            .clone()
-            .into_inner()
-            .find(|p| p.as_rule() == Rule::name)
-            .expect("Function must have a name")
-            .as_str();
-        
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
     }
 

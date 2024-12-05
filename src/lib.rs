@@ -1,23 +1,20 @@
 mod rustfmt;
 mod visitors;
 
-
 pub use crate::rustfmt::{rustfmt, RustFmtConfig};
 
+use crate::visitors::visitor::CoreDatum;
+use lazy_static::lazy_static;
+use miette::{miette, IntoDiagnostic}; // Importing miette and Result
 use pest::{iterators::Pair, iterators::Pairs, Parser};
 use pest_derive::Parser;
 use pretty::*;
 use regex::Regex;
-use std::collections::HashSet;
-use tracing::{debug, enabled, error, info, Level};
 use std::collections::HashMap;
-use miette::{miette, Result,IntoDiagnostic}; // Importing miette and Result
-use lazy_static::lazy_static;
-use crate::visitors::visitor::CoreDatum;
-use std::sync::Mutex;
+use std::collections::HashSet;
 use std::fs;
-use std::env;
-use std::path::Path;
+use std::sync::Mutex;
+use tracing::{debug, enabled, error, info, Level};
 // use miette::{miette, IntoDiagnostic};
 
 // use crate::visitors::range_bounds_visitor::RangeBoundsDatum;
@@ -29,11 +26,10 @@ lazy_static! {
         fn_calls: HashMap::new(),
         target_name: "".to_string(),
         finite_bound: 5,
-	variable_stack: Vec::new(),
-	variable_map: HashMap::new(),
+        variable_stack: Vec::new(),
+        variable_map: HashMap::new(),
     });
 }
-
 
 #[derive(Parser)]
 #[grammar = "verus.pest"]
@@ -50,7 +46,6 @@ const INLINE_COMMENT_SPACE: usize = 2;
 struct Context {
     inline_comment_lines: HashSet<usize>,
 }
-
 
 impl VerusParser {
     pub fn split_implication(expr: &str) -> (Option<Pair<'_, Rule>>, Option<Pair<'_, Rule>>) {
@@ -74,7 +69,7 @@ impl VerusParser {
         (lhs, rhs)
     }
 
-    pub fn str_to_expr(expr: &str) -> (Option<Pair<'_, Rule>>) {
+    pub fn str_to_expr(expr: &str) -> Option<Pair<'_, Rule>> {
         let parsed_expr = Self::parse(Rule::expr, expr)
             .ok()
             .and_then(|mut pairs| pairs.next());
@@ -86,13 +81,12 @@ impl VerusParser {
             .and_then(|mut pairs| pairs.next());
         parsed_func
     }
-pub fn str_to_fn_qualifier(expr: &str) -> (Option<Pair<'_, Rule>>) {
+    pub fn str_to_fn_qualifier(expr: &str) -> Option<Pair<'_, Rule>> {
         let parsed_expr = Self::parse(Rule::fn_qualifier, expr)
             .ok()
             .and_then(|mut pairs| pairs.next());
         parsed_expr
     }
-
 }
 // When in doubt, we should generally try to stick to Rust style guidelines:
 //   https://doc.rust-lang.org/beta/style-guide/items.html
@@ -1669,7 +1663,12 @@ impl miette::Diagnostic for ParseAndFormatError {
     }
 }
 
-fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visitor::CoreDatum, print_failed: bool) -> miette::Result<String> {
+fn parse_and_format(
+    s: &str,
+    visitor_name: &str,
+    visit_dat: &mut visitors::visitor::CoreDatum,
+    print_failed: bool,
+) -> miette::Result<String> {
     // Create a context for inline comments
     let ctx = Context {
         inline_comment_lines: find_inline_comment_lines(s),
@@ -1686,66 +1685,80 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
     match visitor_name {
         "FunctionInlineVisitor" => {
             visitors::visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
-	},
+        }
         "CollectionsVisitor" => {
             // Create an instance of CollectionsVisitor with the target_name from CoreDatum
-            let collectionsVisitor = visitors::collections_visitor::CollectionsVisitor::new(visit_dat.target_name.clone());
-            collectionsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let collections_visitor = visitors::collections_visitor::CollectionsVisitor::new(
+                visit_dat.target_name.clone(),
+            );
+            collections_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "LambdaVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let lambdaVisitor = visitors::lambda_visitor::LambdaVisitor::new(visit_dat.target_name.clone());
-            lambdaVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let lambda_visitor =
+                visitors::lambda_visitor::LambdaVisitor::new(visit_dat.target_name.clone());
+            lambda_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "LoopVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let loopVisitor = visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
-            loopVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let loop_visitor =
+                visitors::loop_visitor::LoopVisitor::new(visit_dat.target_name.clone());
+            loop_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "ModularFlattenerVisitor" => {
             // Create an instance of ModularFlattenerVisitor with the target_name from CoreDatum
-            let modularFlattenerVisitor = visitors::modular_flattener_visitor::ModularFlattenerVisitor::new();
-            modularFlattenerVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let modular_flattener_visitor =
+                visitors::modular_flattener_visitor::ModularFlattenerVisitor::new();
+            modular_flattener_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "RangeBoundsVisitor" => {
             // Create an instance of RangeBoundsVisitor with the target_name from CoreDatum
-            let rangeBoundsVisitor = visitors::range_bounds_visitor::RangeBoundsVisitor::new(visit_dat.target_name.clone());
+            let range_bounds_visitor = visitors::range_bounds_visitor::RangeBoundsVisitor::new(
+                visit_dat.target_name.clone(),
+            );
             // let mut range_dat = visitors::range_bounds_visitor::RangeBoundsDatum {
             //     program: visit_dat.program.clone(),
             //     param_map: HashMap::new(),
             // };
-            rangeBoundsVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
-            // visit_dat.program = range_dat.program; //todo - clean up
+            range_bounds_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+                                                                  // visit_dat.program = range_dat.program; //todo - clean up
         }
         "RecursionVisitor" => {
             // Create an instance of RecursionVisitor with the target_name from CoreDatum
-            let recursionVisitor = visitors::recursion_visitor::RecursionVisitor::new(visit_dat.target_name.clone());
-            recursionVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let recursion_visitor =
+                visitors::recursion_visitor::RecursionVisitor::new(visit_dat.target_name.clone());
+            recursion_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "RevealVisitor" => {
             // Create an instance of RevealVisitor with the target_name from CoreDatum
-            let revealVisitor = visitors::reveal_visitor::RevealVisitor::new(visit_dat.target_name.clone());
-            revealVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let reveal_visitor =
+                visitors::reveal_visitor::RevealVisitor::new(visit_dat.target_name.clone());
+            reveal_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "SetSubsetVisitor" => {
             // Create an instance of RevealVisitor with the target_name from CoreDatum
-            let setSubsetVisitor = visitors::set_subset_visitor::SetSubsetVisitor::new(visit_dat.target_name.clone());
-            setSubsetVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let set_subset_visitor =
+                visitors::set_subset_visitor::SetSubsetVisitor::new(visit_dat.target_name.clone());
+            set_subset_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "SimpleVisitor" => {
             // Create an instance of SimpleVisitor with the target_name from CoreDatum
-            let simpleVisitor = visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
-            simpleVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let simple_visitor =
+                visitors::simple_visitor::SimpleVisitor::new(visit_dat.target_name.clone());
+            simple_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "StripProofVisitor" => {
             // Create an instance of StripProofVisitor with the target_name from CoreDatum
-            let stripProofVisitor = visitors::strip_proof_visitor::StripProofVisitor::new(visit_dat.target_name.clone());
-            stripProofVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let strip_proof_visitor = visitors::strip_proof_visitor::StripProofVisitor::new(
+                visit_dat.target_name.clone(),
+            );
+            strip_proof_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         "QuantifierVisitor" => {
             // Create an instance of QuantifierVisitor with the target_name from CoreDatum
-            let quantifierVisitor = visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
-            quantifierVisitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+            let quantifier_visitor =
+                visitors::quantifier_visitor::QuantifierVisitor::new(visit_dat.target_name.clone());
+            quantifier_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
         _ => return Err(miette!("Unknown visitor: {}", visitor_name)),
     }
@@ -1753,14 +1766,17 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
     // Reparse the program generated by the visitor
     let reconstructed: &str = visit_dat.program.as_str();
 
-    if(print_failed){
+    if print_failed {
         let formatted_file_name = "./reconstructed_output.rs";
 
         // Write `reconstructed` content to the temporary file
-        fs::write(&formatted_file_name, reconstructed.clone()).into_diagnostic()?;
+        fs::write(&formatted_file_name, reconstructed).into_diagnostic()?;
 
         // Print confirmation to the console
-        println!("Written un-parsed verus code to file: {}", formatted_file_name);
+        println!(
+            "Written un-parsed verus code to file: {}",
+            formatted_file_name
+        );
     }
 
     let reparsed_file = VerusParser::parse(Rule::file, reconstructed)
@@ -1839,10 +1855,6 @@ fn parse_and_format(s: &str, visitor_name: &str, visit_dat: &mut visitors::visit
     Ok(fixed_output)
 }
 
-
-
-
-
 /// Options to pass to [`run`]
 pub struct RunOptions {
     /// The file name. If provided, improves diagnostics.
@@ -1854,7 +1866,7 @@ pub struct RunOptions {
     // finite bound
     pub finite_bound: Option<usize>,
     // print-failed debug option
-    pub print_failed: bool
+    pub print_failed: bool,
 }
 
 impl Default for RunOptions {
@@ -1869,7 +1881,12 @@ impl Default for RunOptions {
     }
 }
 
-pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Option<String>) -> miette::Result<String> {
+pub fn run(
+    s: &str,
+    opts: RunOptions,
+    visitor_name: &str,
+    failed_assertion: Option<String>,
+) -> miette::Result<String> {
     let unparsed_file = s;
 
     // Call str_to_expr on the failed_assertion if it's Some
@@ -1886,7 +1903,10 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Opti
             if let Some(pair) = parsed_expr {
                 // Successfully parsed; extract the string representation from the Pair
                 let parsed_string = pair.as_str(); // This assumes that `Pair` has a method `as_str()`
-                println!("Debug: Successfully parsed assertion expression: {:?}", parsed_string);
+                println!(
+                    "Debug: Successfully parsed assertion expression: {:?}",
+                    parsed_string
+                );
                 // println!("Debug: Successfully parsed assertion expression: {:?} {:?}", parsed_string, pair);
             }
         }
@@ -1895,26 +1915,31 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Opti
 
     // Lock the mutex to access the shared state
     let mut visit_dat = VISIT_DATA.lock().unwrap();
-    if let Some(parsed_bound) = opts.finite_bound{
+    if let Some(parsed_bound) = opts.finite_bound {
         println!("Debug: Current Bound: {}", parsed_bound);
         visit_dat.finite_bound = parsed_bound;
-
     }
 
     visit_dat.program = "".to_string();
     if let Some(first_fn_name) = visit_dat.fn_calls.keys().next() {
         visit_dat.target_name = first_fn_name.clone();
-    }  
-    
+    }
+
     // Debugging statements to print the contents of visit_dat
     // println!("Current visit_dat contents:");
     // println!("Program: {}", visit_dat.program);
     // println!("Function Map: {:?}", visit_dat.fn_map);
     // println!("Function Calls: {:?}", visit_dat.fn_calls);
     // println!("Target Name: {}", visit_dat.target_name);
-        
+
     // Parse and format the file using the specified visitor
-    let verus_fmted = parse_and_format(unparsed_file, visitor_name, &mut visit_dat, opts.print_failed).map_err(|e| {
+    let verus_fmted = parse_and_format(
+        unparsed_file,
+        visitor_name,
+        &mut visit_dat,
+        opts.print_failed,
+    )
+    .map_err(|e| {
         e.with_source_code(miette::NamedSource::new(
             file_name,
             unparsed_file.to_owned(),
@@ -1932,6 +1957,3 @@ pub fn run(s: &str, opts: RunOptions, visitor_name: &str, failed_assertion: Opti
 
     Ok(formatted_output)
 }
-
-
-

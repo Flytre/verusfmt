@@ -5,7 +5,6 @@ use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use std::collections::HashMap;
 pub trait HasProgram {
-    fn program(&self) -> &String;
     fn program_mut(&mut self) -> &mut String;
 }
 
@@ -42,13 +41,19 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("arg_list", VerusVisitor::visit_arg_list);
         handlers.insert("COMMENT", VerusVisitor::visit_comment);
         handlers.insert("item_list", VerusVisitor::visit_item_list);
-        handlers.insert("record_field_list", VerusVisitor::visit_record_field_list); 
-        handlers.insert("assoc_item_list", VerusVisitor::visit_assoc_item_list); 
+        handlers.insert("record_field_list", VerusVisitor::visit_record_field_list);
+        handlers.insert("assoc_item_list", VerusVisitor::visit_assoc_item_list);
         handlers.insert("match_arm_list", VerusVisitor::visit_match_arm_list);
-        handlers.insert("tuple_struct_pat_inner", VerusVisitor::visit_tuple_struct_pat_inner);
+        handlers.insert(
+            "tuple_struct_pat_inner",
+            VerusVisitor::visit_tuple_struct_pat_inner,
+        );
         handlers.insert("tuple_pat", VerusVisitor::visit_tuple_struct_pat);
         handlers.insert("match_arm_lhs", VerusVisitor::visit_match_arm_lhs);
-        handlers.insert("record_expr_field_list", VerusVisitor::visit_record_expr_field_list);
+        handlers.insert(
+            "record_expr_field_list",
+            VerusVisitor::visit_record_expr_field_list,
+        );
         handlers.insert("trigger_str", VerusVisitor::visit_trigger_str);
         handlers.insert("generic_args", VerusVisitor::visit_generic_args);
         handlers.insert("ref_type", VerusVisitor::visit_ref_type);
@@ -56,8 +61,14 @@ impl<T: HasProgram> HandlerMap<T> {
         handlers.insert("attr_core", VerusVisitor::visit_attr_core);
         handlers.insert("variant_list", VerusVisitor::visit_variant_list);
         handlers.insert("field_list", VerusVisitor::visit_field_list);
-        handlers.insert("condensable_record_field_list", VerusVisitor::visit_condensable_record_field_list);
-        handlers.insert("record_pat_field_list", VerusVisitor::visit_record_pat_field_list);
+        handlers.insert(
+            "condensable_record_field_list",
+            VerusVisitor::visit_condensable_record_field_list,
+        );
+        handlers.insert(
+            "record_pat_field_list",
+            VerusVisitor::visit_record_pat_field_list,
+        );
         handlers.insert("tuple_field_list", VerusVisitor::visit_tuple_field_list);
         Self { handlers }
     }
@@ -89,7 +100,6 @@ impl VerusVisitor {
             VerusVisitor::default_visit(datum, pair, handlers);
         }
     }
-    
 
     fn default_visit<T: HasProgram>(
         datum: &mut T,
@@ -107,11 +117,10 @@ impl VerusVisitor {
     fn visit_attr_core<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
-        handlers: &dyn HandlerInterface<T>,
+        _handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str(&format!("{} ", pair.as_str()));
     }
-
 
     fn visit_record_pat_field_list<T: HasProgram>(
         datum: &mut T,
@@ -126,17 +135,16 @@ impl VerusVisitor {
         datum.program_mut().push_str(" }");
     }
 
-    
     fn visit_tuple_field_list<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<T>,
     ) {
         let mut inner_pairs = pair.into_inner().peekable(); // Make the iterator peekable
-    
+
         while let Some(inner_pair) = inner_pairs.next() {
             VerusVisitor::visit(datum, inner_pair, handlers);
-    
+
             if inner_pairs.peek().is_some() {
                 datum.program_mut().push_str(", ");
             }
@@ -149,10 +157,10 @@ impl VerusVisitor {
         handlers: &dyn HandlerInterface<T>,
     ) {
         let mut inner_pairs = pair.into_inner().peekable(); // Make the iterator peekable
-    
+
         while let Some(inner_pair) = inner_pairs.next() {
             VerusVisitor::visit(datum, inner_pair, handlers);
-    
+
             if inner_pairs.peek().is_some() {
                 datum.program_mut().push_str(", ");
             }
@@ -175,7 +183,7 @@ impl VerusVisitor {
             }
             datum.program_mut().push_str("}");
         } else if let Some('(') = first_char {
-            // Handle parenthesis 
+            // Handle parenthesis
             datum.program_mut().push_str("(");
             for inner_pair in pair.into_inner() {
                 VerusVisitor::visit(datum, inner_pair, handlers);
@@ -183,9 +191,7 @@ impl VerusVisitor {
             }
             datum.program_mut().push_str(")");
         }
-        
     }
-
 
     fn visit_variant_list<T: HasProgram>(
         datum: &mut T,
@@ -213,7 +219,7 @@ impl VerusVisitor {
     fn visit_record_field_list<T: HasProgram>(
         datum: &mut T,
         pair: Pair<Rule>,
-        handlers: &dyn HandlerInterface<T>,
+        _handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str("{\n");
         for inner_pair in pair.into_inner() {
@@ -255,10 +261,10 @@ impl VerusVisitor {
         datum.program_mut().push_str("(");
         // VerusVisitor::visit_all(datum, pair.into_inner(), handlers)
         let mut inner_pairs = pair.into_inner().peekable(); // Make the iterator peekable
-    
+
         while let Some(inner_pair) = inner_pairs.next() {
             VerusVisitor::visit(datum, inner_pair, handlers);
-    
+
             if inner_pairs.peek().is_some() {
                 datum.program_mut().push_str(", ");
             }
@@ -277,7 +283,7 @@ impl VerusVisitor {
         for inner_pair in pair.into_inner() {
             VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
-        }        
+        }
         datum.program_mut().push_str(")");
     }
 
@@ -302,11 +308,11 @@ impl VerusVisitor {
         }
         datum.program_mut().push_str("}\n");
     }
-    
+
     fn visit_trigger_str<T: HasProgram>(
         datum: &mut T,
-        pair: Pair<Rule>,
-        handlers: &dyn HandlerInterface<T>,
+        _pair: Pair<Rule>,
+        _handlers: &dyn HandlerInterface<T>,
     ) {
         datum.program_mut().push_str("[trigger]");
     }
@@ -340,12 +346,9 @@ impl VerusVisitor {
         for inner_pair in pair.into_inner() {
             VerusVisitor::visit(datum, inner_pair, handlers);
             datum.program_mut().push_str(", ");
-        }        
+        }
         datum.program_mut().push_str("}");
-
     }
-
-    
 
     fn visit_stmt_list<T: HasProgram>(
         datum: &mut T,
@@ -379,7 +382,6 @@ impl VerusVisitor {
         }
         datum.program_mut().push_str(">");
     }
-
 
     fn visit_param_list<T: HasProgram>(
         datum: &mut T,
@@ -460,7 +462,7 @@ impl VerusVisitor {
                     VerusVisitor::visit(datum, inner_pair, handlers);
                     datum.program_mut().push_str(", \n");
                 }
-            }           
+            }
         }
     }
 
@@ -511,17 +513,8 @@ pub struct CoreDatum {
 
 // Implement HasProgram for CoreDatum
 impl HasProgram for CoreDatum {
-    fn program(&self) -> &String {
-        &self.program
-    }
-
     fn program_mut(&mut self) -> &mut String {
         &mut self.program
-    }
-}
-impl CoreDatum {
-    pub fn get_target_name(&self) -> &String {
-        &self.target_name
     }
 }
 
@@ -641,15 +634,20 @@ impl FunctionInlineVisitor {
         let mut function_name: Option<String> = None;
         let mut arguments: Option<String> = None;
 
+        let mut prev: bool = false;
+
         while let Some(inner_pair) = inner_pairs.next() {
             match inner_pair.as_rule() {
                 Rule::expr_inner => {
-                    let mut nested_pairs = inner_pair.clone().into_inner();
+                    let nested_pairs = inner_pair.clone().into_inner();
                     if let Some(function_pair) = nested_pairs
                         .clone()
                         .find(|p| p.as_rule() == Rule::path_expr_no_generics)
                     {
-                        function_name = Some(function_pair.as_str().to_string());
+                        if !(function_pair.as_str().contains("::")) {
+                            function_name = Some(function_pair.as_str().to_string());
+                        }
+                        prev = true;
                     }
                 }
                 Rule::arg_list => {
@@ -657,9 +655,13 @@ impl FunctionInlineVisitor {
                         .into_inner()
                         .map(|p| p.as_str().to_string())
                         .collect();
-                    arguments = Some(args.clone());
+                    if prev {
+                        arguments = Some(args.clone());
+                    }
                 }
-                _ => {}
+                _ => {
+                    prev = false;
+                }
             }
         }
 
@@ -759,10 +761,6 @@ pub struct InlinerDatum {
 }
 
 impl HasProgram for InlinerDatum {
-    fn program(&self) -> &String {
-        &self.program
-    }
-
     fn program_mut(&mut self) -> &mut String {
         &mut self.program
     }
