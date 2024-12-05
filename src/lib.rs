@@ -1684,7 +1684,7 @@ fn parse_and_format(
     // Match on the visitor name to invoke the correct visitor handling logic
     match visitor_name {
         "FunctionInlineVisitor" => {
-            visitors::visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
+            visitors::function_inline_visitor::FunctionInlineVisitor::visit_all(visit_dat, parsed_file.clone());
         }
         "CollectionsVisitor" => {
             // Create an instance of CollectionsVisitor with the target_name from CoreDatum

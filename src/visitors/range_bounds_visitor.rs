@@ -189,17 +189,20 @@ impl RangeBoundsVisitor {
         let mut numerical_params = Vec::new();
         let mut vector_params = Vec::new(); // Store vector type parameters
 
-        for (param, param_type) in param_map {
-            // Check for simple numerical types
-            if numerical_types.contains(&param_type.as_str()) {
-                numerical_params.push(param.clone());
-            }
-            // Check for vector types
-            else if param_type.starts_with("&Vec<") {
-                // Add the parameter to vector_params regardless of the inner type
-                vector_params.push(param.clone());
-            }
+    for (param, param_type) in param_map {
+        // Check for simple numerical types
+        if numerical_types.contains(&param_type.as_str()) {
+            numerical_params.push(param.clone());
+        } 
+        
+        // Check for vector types
+        else if param_type.starts_with("&Vec<")
+                || param_type.starts_with("Vec<") 
+                || param_type.starts_with("Seq<") {
+            // Add the parameter to vector_params regardless of the inner type
+            vector_params.push(param.clone());
         }
+    }
 
         // Generate expressions only if there are numerical parameters or vector parameters
         let mut expressions = Vec::new();
