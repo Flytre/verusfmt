@@ -322,7 +322,7 @@ impl ModularFlattenerVisitor {
         let mut non_expr_inner_and_arg_list_pairs = Vec::new(); // Collect pairs that are not expr_inner or arg_list
 
 
-        let mut contains_only_expr_inner_and_arg_list = true;
+        // let mut contains_only_expr_inner_and_arg_list = true;
     
         while let Some(inner_pair) = inner_pairs.next() {
             // println!("inner = {:?} {:?}", inner_pair.as_rule(), inner_pair.as_str());

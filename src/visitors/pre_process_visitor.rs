@@ -1,9 +1,7 @@
 use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgram, VerusVisitor};
 use crate::Rule;
-use crate::VerusParser;
 use lazy_static::lazy_static;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
-use regex::Regex;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
