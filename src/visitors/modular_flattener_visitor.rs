@@ -313,13 +313,19 @@ impl ModularFlattenerVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
+        // println!("Expr = {:?} {:?}", pair.as_str(), pair.as_rule());
+    
         let mut inner_pairs = pair.clone().into_inner();
-
         let mut function_name: Option<String> = None;
         let mut args: Vec<String> = Vec::new(); // To store argument values
         let mut _param_names: Vec<String> = Vec::new(); // To store parameter names
+        let mut non_expr_inner_and_arg_list_pairs = Vec::new(); // Collect pairs that are not expr_inner or arg_list
 
+
+        let mut contains_only_expr_inner_and_arg_list = true;
+    
         while let Some(inner_pair) = inner_pairs.next() {
+            // println!("inner = {:?} {:?}", inner_pair.as_rule(), inner_pair.as_str());
             match inner_pair.as_rule() {
                 Rule::expr_inner => {
                     let nested_pairs = inner_pair.clone().into_inner();
@@ -341,62 +347,74 @@ impl ModularFlattenerVisitor {
                         .map(|s| s.trim().to_string()) // Get the argument values
                         .collect();
                 }
-                _ => {}
+                _ => {
+                    non_expr_inner_and_arg_list_pairs.push(inner_pair);
+
+                }
             }
         }
-
+    
+        // if !contains_only_expr_inner_and_arg_list {
+        //     // If there are other rules, recurse
+        //     VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        //     return;
+        // }
+        // println!(" ----- non_expr_inner_and_arg_list_pairs = {:?} ", non_expr_inner_and_arg_list_pairs);
+    
         if let Some(function_name) = function_name {
             if let Some(function_body) = datum.fn_map.get(&function_name) {
-                // println!("Expr = {:?} {:?}", pair.as_str(), pair.as_rule());
-
+                // println!(" ----- function_name = {:?}  -- {:?}", function_name, args);
+    
                 let parent_name = PARENT_FUNCTION_NAME.lock().unwrap().clone();
                 let parent_mode = {
                     let parent_map = PARENT_FUNCTION_NAME_MAP.lock().unwrap();
                     parent_map.get(&parent_name).cloned()
                 };
-
+    
                 // Retrieve the mode of the called function
                 let called_function_mode = {
                     let parent_map = PARENT_FUNCTION_NAME_MAP.lock().unwrap();
                     parent_map.get(&function_name).cloned()
                 };
-                if let (Some(parent_mode), Some(called_mode)) = (parent_mode, called_function_mode)
-                {
-                    println!(" parent = {:?} , called = {:?}",parent_mode , called_mode );
-                    //
-                    //temporary restriction! 
-                    //
-                    if (called_mode.as_str().to_string() != "fn".to_string()) &&  (parent_mode.as_str().to_string() != "fn".to_string()) {
-                        // temporary restriction for "fns" (but still allow proof and spec to be flattened)
-
+    
+                if let (Some(parent_mode), Some(called_mode)) = (parent_mode, called_function_mode) {
+                    // Temporary restriction for "fns" (but still allow proof and spec to be flattened)
+                    if called_mode != "fn" && parent_mode != "fn" {
                         let mut function_body = function_body.clone();
-                        // Now extract the parameters from the function signature
-                        let function_signature = function_body.split('(').nth(1).unwrap_or(""); // Extract the part after the '('
-                        let param_str = function_signature.split(')').next().unwrap_or(""); // Extract the part before the ')'
-
+    
+                        // Extract the parameters from the function signature
+                        let function_signature = function_body.split('(').nth(1).unwrap_or("");
+                        let param_str = function_signature.split(')').next().unwrap_or("");
                         _param_names = param_str
                             .split(',')
-                            .map(|s| s.trim().split(':').next().unwrap().trim().to_string()) // Get parameter names before the ":"
+                            .map(|s| s.trim().split(':').next().unwrap().trim().to_string())
                             .collect();
-
+    
+                        // println!("\nBefore replacement:\n{:?} {:?}", &_param_names, &args);
+    
                         Self::replace_params_with_args(&mut function_body, &_param_names, &args);
                         // println!("\nAfter replacement:\n{}", function_body);
-
+    
                         if let Some(body) = Self::extract_function_body(&function_body) {
                             datum
                                 .program_mut()
                                 .push_str(&format!("({}) ", body.as_str()));
+                            for inner_pair in non_expr_inner_and_arg_list_pairs {
+                                    // println!("Recursing on rule: {:?}", inner_pair.as_rule());
+                                    VerusVisitor::visit(datum, inner_pair, handlers);
+                                }
                             return;
                         } else {
-                            // VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
                             println!("Could not extract function body.");
                         }
                     }
                 }
             }
         }
+    
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
     }
+    
 
     fn replace_params_with_args(
         function_body: &mut String,
