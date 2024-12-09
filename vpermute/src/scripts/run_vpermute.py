@@ -11,13 +11,15 @@ def debug_print(debug_enabled, message):
     if debug_enabled:
         print(message)
 
-def run_cargo(file, visitors, working_dir, debug_enabled):
+def run_cargo(file, visitors, experiment_name, working_dir, debug_enabled):
     """Run the cargo command."""
     cargo_command = [
         "cargo", "run", "--",
-        "--file", file,
-        "--visitors", visitors
+        f"--file={file}",
+        f"--visitors={visitors}",
+        f"--experiment-name={experiment_name}",
     ]
+    debug_print(debug_enabled, f"Running command: {' '.join(cargo_command)}")
     try:
         result = subprocess.run(
             cargo_command,
@@ -72,18 +74,20 @@ def execute_experiment(experiment, working_dir):
     program = experiment["program"]
     visitors = ",".join(experiment["visitors"])
     args = experiment.get("args", [])
+    experiment_name = experiment["name"]
     debug_enabled = "--debug" in args
 
     # Define experiment directories
     experiments_dir = os.path.abspath(
-        os.path.join(working_dir, "../permutation_experiments", os.path.basename(program))
+        os.path.join(working_dir, "../permutation_experiments", experiment_name)
     )
+    os.makedirs(experiments_dir, exist_ok=True)
     output_csv = os.path.join(experiments_dir, "diff_results.csv")
 
     # Run cargo and record time
     print(f"Starting experiment: {experiment['name']}")
     start_time = time.time()
-    run_cargo(program, visitors, working_dir, debug_enabled)
+    run_cargo(program, visitors, experiment_name, working_dir, debug_enabled)
     cargo_time = time.time() - start_time
     print("[DONE]\n")
 
@@ -93,7 +97,7 @@ def execute_experiment(experiment, working_dir):
     if os.path.exists(experiments_dir):
         print(f"Generating diff results in {output_csv}")
         start_time = time.time()
-        diff_results = generate_diff_csv(experiments_dir, output_csv, debug_enabled)
+        diff_results = generate_diff_csv(os.path.join(experiments_dir, os.path.basename(program)), output_csv, debug_enabled)
         diff_time = time.time() - start_time
         print(f"[DONE]: Diff results saved to {output_csv}")
     else:

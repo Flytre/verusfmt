@@ -49,10 +49,10 @@ _________________
 
 A single experiment can be run directly from the vpermute root directory using the following command:
 
-`cargo run -- --file [relative_path_to_test_file] --visitors [list_of visitors]`
+`cargo run -- --file [relative_path_to_test_file] --experiment-name [name] --visitors [list_of visitors]`
 
 optional args: `--debug`: prints debug statements
 
 Ex:
-`cargo run -- --file ../sample.rs --visitors FunctionInlineVisitor,QuantifierVisitor,LoopVisitor --debug`
+`cargo run -- --file ../sample.rs --experiment-name sampleEx --visitors FunctionInlineVisitor,QuantifierVisitor,LoopVisitor --debug`
 

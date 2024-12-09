@@ -19,14 +19,26 @@ struct Args {
     #[arg(short, long)]
     visitors: String,
 
+    /// Experiment name
+    #[arg(short = 'n', long)]
+    experiment_name: String,
+
     /// Enable debug printing
     #[arg(long)]
     debug: bool,
 }
 
-fn run_permutation(path: &Path, ordering: &Vec<&str>, debug: bool) -> Result<()> {
+fn run_permutation(
+    path: &Path,
+    ordering: &Vec<&str>,
+    experiment_name: &str,
+    debug: bool,
+) -> Result<()> {
     if debug {
-        println!("DEBUG: Starting permutation for {:?}", ordering);
+        println!(
+            "DEBUG: Starting permutation for {:?} in experiment '{}'",
+            ordering, experiment_name
+        );
     }
 
     let original_file_name = path.file_name().unwrap().to_str().unwrap();
@@ -60,7 +72,7 @@ fn run_permutation(path: &Path, ordering: &Vec<&str>, debug: bool) -> Result<()>
         anyhow::bail!("Failed to run command for permutation {:?}", ordering);
     }
 
-    let experiment_dir = format!("../permutation_experiments/{}", original_file_name);
+    let experiment_dir = format!("../permutation_experiments/{}/{}", experiment_name, original_file_name);
     fs::create_dir_all(&experiment_dir)
         .with_context(|| format!("Failed to create experiment directory: {}", &experiment_dir))?;
 
@@ -72,7 +84,10 @@ fn run_permutation(path: &Path, ordering: &Vec<&str>, debug: bool) -> Result<()>
         .with_context(|| format!("Failed to delete uuid file {}", rand_name))?;
 
     if debug {
-        println!("DEBUG: Successfully processed permutation {:?}", ordering);
+        println!(
+            "DEBUG: Successfully processed permutation {:?} for experiment '{}'",
+            ordering, experiment_name
+        );
     }
     Ok(())
 }
@@ -81,10 +96,11 @@ fn main() {
     // Parse command-line arguments
     let args = Args::parse();
 
-    // Extract file path and visitors
+    // Extract file path, visitors, and experiment name
     let file_path = args.file;
     let visitors: Vec<&str> = args.visitors.split(',').collect();
-    let debug = args.debug;  // Get the debug flag
+    let experiment_name = args.experiment_name;
+    let debug = args.debug; // Get the debug flag
 
     let path = Path::new(&file_path);
 
@@ -92,7 +108,11 @@ fn main() {
     let perms: Vec<Vec<&str>> = visitors.clone().into_iter().permutations(visitors.len()).collect();
 
     if debug {
-        println!("DEBUG: Total permutations generated: {}", perms.len());
+        println!(
+            "DEBUG: Total permutations generated for experiment '{}': {}",
+            experiment_name,
+            perms.len()
+        );
         for perm in &perms {
             println!("DEBUG: Visitors for this permutation: {:?}", perm);
         }
@@ -100,10 +120,10 @@ fn main() {
 
     // Run permutations in parallel
     perms.par_iter().for_each(|perm| {
-        if let Err(e) = run_permutation(path, perm, debug) {
-            eprintln!("Error with permutation {:?}: {}", perm, e);
+        if let Err(e) = run_permutation(path, perm, &experiment_name, debug) {
+            eprintln!("Error with permutation {:?} for experiment '{}': {}", perm, experiment_name, e);
         }
     });
 
-    println!("done!");
+    println!("Experiment '{}' done!", experiment_name);
 }
