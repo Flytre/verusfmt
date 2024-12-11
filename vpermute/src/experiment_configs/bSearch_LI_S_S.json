@@ -1,0 +1,17 @@
+{
+    "experiments": [
+        {
+            "name": "test",
+            "program":  "../flowchartExperiments/binarySearchEx_LI_S_S.rs",
+            "visitors": [
+                "LoopVisitor",
+                "QuantifierVisitor",
+                "RangeBoundsVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor"
+            ],
+            "args": [
+            ]
+        }
+    ]
+}

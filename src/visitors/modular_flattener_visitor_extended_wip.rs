@@ -7,6 +7,8 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+//WIP TO handle SPEC -> FN AND SPEC -> SPEC flattening
+
 lazy_static! {
     static ref PARENT_FUNCTION_NAME_MAP: Mutex<HashMap<String, String>> =
         Mutex::new(HashMap::new());
@@ -32,8 +34,9 @@ impl ModularFlattenerVisitor {
             "verus_macro_use",
             ModularFlattenerVisitor::visit_verus_macro_use,
         );
-        handlers.insert("expr", ModularFlattenerVisitor::visit_expr);
+        // handlers.insert("expr", ModularFlattenerVisitor::visit_expr);
         handlers.insert("let_stmt", ModularFlattenerVisitor::visit_let_stmt);
+        handlers.insert("stmt", ModularFlattenerVisitor::visit_stmt);
 
         handlers
     }
@@ -308,26 +311,54 @@ impl ModularFlattenerVisitor {
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
     }
 
-    fn visit_expr(
+    fn visit_stmt(
         datum: &mut CoreDatum,
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        // println!("Expr = {:?} {:?}", pair.as_str(), pair.as_rule());
-    
+        let mut modular_expr_str: Option<String> = None;
+
         let mut inner_pairs = pair.clone().into_inner();
+        while let Some(inner_pair) = inner_pairs.next() {
+            println!("stmt inner = {:?} {:?}", inner_pair.as_rule(), inner_pair.as_str());
+            match inner_pair.as_rule() {
+                Rule::expr => {
+                    modular_expr_str = Self::visit_expr_helper(datum, inner_pair);
+                    
+                }
+                _ => {}
+            }
+        }
+
+        if let Some(modular_expr_str) = modular_expr_str {
+            println!("Updated Expr =  {:?}", modular_expr_str);
+            datum
+            .program_mut()
+            .push_str(&format!("{} ", modular_expr_str));
+            return;
+
+        }else{
+            VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+
+        }
+    }
+
+    fn visit_expr_helper(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+    ) -> Option<String> {
+        let mut inner_pairs = pair.clone().into_inner();
+    
         let mut function_name: Option<String> = None;
         let mut args: Vec<String> = Vec::new(); // To store argument values
         let mut _param_names: Vec<String> = Vec::new(); // To store parameter names
-        let mut non_expr_inner_and_arg_list_pairs = Vec::new(); // Collect pairs that are not expr_inner or arg_list
-
-
-        // let mut contains_only_expr_inner_and_arg_list = true;
     
         while let Some(inner_pair) = inner_pairs.next() {
-            // println!("inner = {:?} {:?}", inner_pair.as_rule(), inner_pair.as_str());
+            println!("Current pair: {:?} {:?}", inner_pair.as_rule(), inner_pair.as_str());
+    
+            // Process the current pair
             match inner_pair.as_rule() {
-                Rule::expr_inner => {
+                Rule::expr_inner if function_name.is_none() => {
                     let nested_pairs = inner_pair.clone().into_inner();
                     if let Some(function_pair) = nested_pairs
                         .clone()
@@ -338,6 +369,7 @@ impl ModularFlattenerVisitor {
                 }
                 Rule::arg_list => {
                     let arg_str = inner_pair
+                        .clone()
                         .into_inner()
                         .map(|p| p.as_str().to_string())
                         .collect::<Vec<String>>()
@@ -347,23 +379,21 @@ impl ModularFlattenerVisitor {
                         .map(|s| s.trim().to_string()) // Get the argument values
                         .collect();
                 }
-                _ => {
-                    non_expr_inner_and_arg_list_pairs.push(inner_pair);
-
+                _ => {}
+            }
+    
+            // If `function_name` is still `None`, recursively call helper
+            if function_name.is_none() {
+                if let Some(result) = Self::visit_expr_helper(datum, inner_pair.clone()) {
+                    return Some(result); // Early return if recursion finds a result
                 }
             }
         }
-    
-        // if !contains_only_expr_inner_and_arg_list {
-        //     // If there are other rules, recurse
-        //     VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
-        //     return;
-        // }
-        // println!(" ----- non_expr_inner_and_arg_list_pairs = {:?} ", non_expr_inner_and_arg_list_pairs);
-    
         if let Some(function_name) = function_name {
+            println!("Function name found: {:?}", function_name);
+    
             if let Some(function_body) = datum.fn_map.get(&function_name) {
-                // println!(" ----- function_name = {:?}  -- {:?}", function_name, args);
+                println!("Expr = {:?} {:?}", pair.as_str(), pair.as_rule());
     
                 let parent_name = PARENT_FUNCTION_NAME.lock().unwrap().clone();
                 let parent_mode = {
@@ -371,39 +401,47 @@ impl ModularFlattenerVisitor {
                     parent_map.get(&parent_name).cloned()
                 };
     
-                // Retrieve the mode of the called function
                 let called_function_mode = {
                     let parent_map = PARENT_FUNCTION_NAME_MAP.lock().unwrap();
                     parent_map.get(&function_name).cloned()
                 };
     
                 if let (Some(parent_mode), Some(called_mode)) = (parent_mode, called_function_mode) {
-                    // Temporary restriction for "fns" (but still allow proof and spec to be flattened)
-                    if called_mode != "fn" && parent_mode != "fn" {
-                        let mut function_body = function_body.clone();
+                    // println!(
+                    //     " parent = {:?} , called = {:?}",
+                    //     parent_mode.as_str().to_string(),
+                    //     called_mode.as_str().to_string()
+                    // );
     
-                        // Extract the parameters from the function signature
-                        let function_signature = function_body.split('(').nth(1).unwrap_or("");
-                        let param_str = function_signature.split(')').next().unwrap_or("");
+                    if called_mode.as_str().to_string() != "fn".to_string() {
+                        // Restrict "fn" (but allow proof and spec to be flattened).
+    
+                        let mut function_body = function_body.clone();
+                        let function_signature = function_body.split('(').nth(1).unwrap_or(""); // Extract part after `(`.
+                        let param_str = function_signature.split(')').next().unwrap_or(""); // Extract part before `)`.
+    
                         _param_names = param_str
                             .split(',')
-                            .map(|s| s.trim().split(':').next().unwrap().trim().to_string())
+                            .map(|s| s.trim().split(':').next().unwrap().trim().to_string()) // Get parameter names before the `:`.
                             .collect();
     
-                        // println!("\nBefore replacement:\n{:?} {:?}", &_param_names, &args);
-    
                         Self::replace_params_with_args(&mut function_body, &_param_names, &args);
+                        println!("\nAfter JERE:\n{}", function_body);
+
                         // println!("\nAfter replacement:\n{}", function_body);
     
-                        if let Some(body) = Self::extract_function_body(&function_body) {
-                            datum
-                                .program_mut()
-                                .push_str(&format!("({}) ", body.as_str()));
-                                for inner_pair in non_expr_inner_and_arg_list_pairs {
-                                    // println!("Recursing on rule: {:?}", inner_pair.as_rule());
-                                    VerusVisitor::visit(datum, inner_pair, handlers);
-                                }
-                            return;
+                        if let Some(body) = Self::extract_function_body(
+                            &function_body,
+                            parent_mode.as_str().to_string(),
+                            called_mode.as_str().to_string(),
+                        ) {
+                            // println!("\nExtracted body:\n{}", body);
+                            return Some(body);
+                            // if parent_mode != "spec" && called_mode == "spec" {
+                            //     return Some(format!("(true);\n{} ", body.as_str()));
+                            // } else {
+                            //     return Some(format!("({}) ", body.as_str()));
+                            // }
                         } else {
                             println!("Could not extract function body.");
                         }
@@ -412,9 +450,113 @@ impl ModularFlattenerVisitor {
             }
         }
     
-        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        // Return `None` if no valid function body was found.
+        None
     }
     
+    
+    
+
+
+    // fn visit_expr(
+    //     datum: &mut CoreDatum,
+    //     pair: Pair<Rule>,
+    //     handlers: &dyn HandlerInterface<CoreDatum>,
+    // ) {
+    //     let mut inner_pairs = pair.clone().into_inner();
+
+    //     let mut function_name: Option<String> = None;
+    //     let mut args: Vec<String> = Vec::new(); // To store argument values
+    //     let mut _param_names: Vec<String> = Vec::new(); // To store parameter names
+
+    //     while let Some(inner_pair) = inner_pairs.next() {
+    //         match inner_pair.as_rule() {
+    //             Rule::expr_inner => {
+    //                 let nested_pairs = inner_pair.clone().into_inner();
+    //                 if let Some(function_pair) = nested_pairs
+    //                     .clone()
+    //                     .find(|p| p.as_rule() == Rule::path_expr_no_generics)
+    //                 {
+    //                     function_name = Some(function_pair.as_str().to_string());
+    //                 }
+    //             }
+    //             Rule::arg_list => {
+    //                 let arg_str = inner_pair
+    //                     .into_inner()
+    //                     .map(|p| p.as_str().to_string())
+    //                     .collect::<Vec<String>>()
+    //                     .join(", ");
+    //                 args = arg_str
+    //                     .split(',')
+    //                     .map(|s| s.trim().to_string()) // Get the argument values
+    //                     .collect();
+    //             }
+    //             _ => {}
+    //         }
+    //     }
+
+    //     if let Some(function_name) = function_name {
+    //         if let Some(function_body) = datum.fn_map.get(&function_name) {
+    //             println!("Expr = {:?} {:?}", pair.as_str(), pair.as_rule());
+
+    //             let parent_name = PARENT_FUNCTION_NAME.lock().unwrap().clone();
+    //             let parent_mode = {
+    //                 let parent_map = PARENT_FUNCTION_NAME_MAP.lock().unwrap();
+    //                 parent_map.get(&parent_name).cloned()
+    //             };
+
+    //             // Retrieve the mode of the called function
+    //             let called_function_mode = {
+    //                 let parent_map = PARENT_FUNCTION_NAME_MAP.lock().unwrap();
+    //                 parent_map.get(&function_name).cloned()
+    //             };
+    //             if let (Some(parent_mode), Some(called_mode)) = (parent_mode, called_function_mode)
+    //             {
+    //                 println!(" parent = {:?} , called = {:?}",parent_mode.as_str().to_string() , called_mode.as_str().to_string() );
+
+    //                 // if(parent_mode.as_str().to_string() == called_mode.as_str().to_string() && called_mode.as_str().to_string() != "fn".to_string()){ // temporary restriction for "fns"
+    //                 if called_mode.as_str().to_string() != "fn".to_string() {
+    //                     // temporary restriction for "fns" (but still allow proof and spec to be flattened)
+
+    //                     let mut function_body = function_body.clone();
+    //                     // Now extract the parameters from the function signature
+    //                     let function_signature = function_body.split('(').nth(1).unwrap_or(""); // Extract the part after the '('
+    //                     let param_str = function_signature.split(')').next().unwrap_or(""); // Extract the part before the ')'
+
+    //                     _param_names = param_str
+    //                         .split(',')
+    //                         .map(|s| s.trim().split(':').next().unwrap().trim().to_string()) // Get parameter names before the ":"
+    //                         .collect();
+
+    //                     Self::replace_params_with_args(&mut function_body, &_param_names, &args);
+    //                     println!("\nAfter replacement:\n{}", function_body);
+
+    //                     if let Some(body) = Self::extract_function_body(&function_body,parent_mode.as_str().to_string() , called_mode.as_str().to_string()) {
+    //                         println!("\nextracted= :\n{}", body);
+    //                         if parent_mode != "spec" && called_mode == "spec" {
+    //                             datum
+    //                                 .program_mut()
+    //                                 .push_str("(true);\n");
+    //                                 datum
+    //                                 .program_mut()
+    //                                 .push_str(&format!("{} ", body.as_str()));
+    //                             return;
+    //                         }else{
+    //                             datum
+    //                                 .program_mut()
+    //                                 .push_str(&format!("({}) ", body.as_str()));
+    //                             return;
+    //                         }
+    //                     } else {
+    //                         // VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+    //                         println!("Could not extract function body.");
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+    // }
 
     fn replace_params_with_args(
         function_body: &mut String,
@@ -431,17 +573,45 @@ impl ModularFlattenerVisitor {
         }
     }
 
-    fn extract_function_body(function_body: &str) -> Option<String> {
-        // Find the first opening brace `{` and the first closing brace `}`
+    fn extract_function_body(
+        function_body: &str,
+        parent_mode: String,
+        called_mode: String,
+    ) -> Option<String> {
+        // Find the content between the first `{` and the last `}`
         if let Some(start) = function_body.find('{') {
             if let Some(end) = function_body.rfind('}') {
                 if start < end {
-                    return Some(function_body[start + 1..end].trim().to_string());
+                    let body_content = &function_body[start + 1..end].trim();
+    
+                    // If parent_mode and called_mode conditions are met
+                    if parent_mode != "spec" && called_mode == "spec" {
+                        // Split the body content into expressions based on "&&&"
+                        let exprs: Vec<&str> = body_content
+                            .split("&&&")
+                            .map(str::trim)
+                            .filter(|expr| !expr.is_empty()) // Skip empty strings
+                            .collect();
+    
+                        // Build the proof block
+                        let mut proof_block = String::from("proof {\n");
+                        for expr in exprs {
+                            proof_block.push_str(&format!("    assert({});\n", expr));
+                        }
+                        proof_block.push('}');
+    
+                        return Some(proof_block);
+                    }
+    
+                    // Default case: return the trimmed body content as-is
+                    return Some(body_content.to_string());
                 }
             }
         }
+    
         None // If no braces are found, return None
     }
+    
 
     fn visit_verus_macro_use(
         datum: &mut CoreDatum,

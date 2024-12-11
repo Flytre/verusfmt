@@ -3,7 +3,9 @@ use crate::Rule;
 use crate::VerusParser;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
 use regex::Regex;
-use std::collections::HashMap;
+// use std::collections::HashMap;
+use std::collections::BTreeMap;
+
 
 // Define a new struct for your custom visitor
 pub struct QuantifierVisitor {
@@ -99,7 +101,7 @@ impl QuantifierVisitor {
                         (closure_param_list, expr)
                     {
                         // Parse the closure_param_list to find variable names and types
-                        let mut param_map: HashMap<String, String> = HashMap::new(); // Holds variable name and type
+                        let mut param_map: BTreeMap<String, String> = BTreeMap::new(); // Holds variable name and type
 
                         // Iterate over the inner pairs of closure_param_list
                         let mut quant_params = closure_param_list.clone().into_inner();
@@ -139,7 +141,9 @@ impl QuantifierVisitor {
                             }
                         }
                         // Initialize a map for the variables in the expression
-                        let mut variables: HashMap<String, usize> = HashMap::new();
+                        // let mut variables: HashMap<String, usize> = HashMap::new();
+                        let mut variables: BTreeMap<String, usize> = BTreeMap::new();
+
                         for (key, _value) in &param_map {
                             variables.insert(key.to_string(), 0);
                             // println!("jere {:?}",key.to_string());
@@ -231,7 +235,9 @@ impl QuantifierVisitor {
             // Ensure both closure_param_list and expr were found
             if let (Some(ref closure_param_list), Some(ref expr)) = (closure_param_list, expr) {
                 // Parse the closure_param_list to find variable names and types
-                let mut param_map: HashMap<String, String> = HashMap::new(); // Holds variable name and type
+                // let mut param_map: HashMap<String, String> = HashMap::new(); // Holds variable name and type
+                let mut param_map: BTreeMap<String, String> = BTreeMap::new();
+
 
                 // Iterate over the inner pairs of closure_param_list
                 let mut quant_params = closure_param_list.clone().into_inner();
@@ -268,11 +274,12 @@ impl QuantifierVisitor {
                     }
                 }
                 // Initialize a map for the variables in the expression
-                let mut variables: HashMap<String, usize> = HashMap::new();
+
+                let mut variables: BTreeMap<String, usize> = BTreeMap::new();
                 for (key, _value) in &param_map {
                     variables.insert(key.to_string(), 0);
                 }
-
+                
                 if first_pair.as_rule() == Rule::forall_str {
                     // Split implication
                     let (lhs_opt, rhs_opt) = VerusParser::split_implication(expr.as_str());
@@ -294,7 +301,7 @@ impl QuantifierVisitor {
                                 upper_bound, lower_bound, &mut variables
                             );
                             // Call the function to find all satisfying combinations
-                            let mut _satisfying_values: Option<Vec<HashMap<String, usize>>> = None;
+                            let mut _satisfying_values: Option<Vec<BTreeMap<String, usize>>> = None;
                             if Self::can_be_evaluated_by_eval_forall_bounds(expr, &variables) {
                                 println!(
                                     "Expression '{}' CAN be evaluated by evalForallBounds",
@@ -561,16 +568,16 @@ impl QuantifierVisitor {
     // -------------------------
 
     fn generate_combinations_simple(
-        variables: &HashMap<String, usize>,
+        variables: &BTreeMap<String, usize>,
         bound: usize,
-    ) -> Vec<HashMap<String, usize>> {
+    ) -> Vec<BTreeMap<String, usize>> {
         let var_names: Vec<String> = variables.keys().cloned().collect();
         let mut results = Vec::new();
         let mut current_values = vec![0; var_names.len()];
 
         loop {
-            // Create a new HashMap for the current combination
-            let mut combination = HashMap::new();
+            // Create a new BTreeMap for the current combination
+            let mut combination = BTreeMap::new();
             for (i, var_name) in var_names.iter().enumerate() {
                 combination.insert(var_name.clone(), current_values[i]);
             }
@@ -623,9 +630,9 @@ impl QuantifierVisitor {
     }
 
     fn find_satisfying_values_exists(
-        variables: &mut HashMap<String, usize>,
+        variables: &mut BTreeMap<String, usize>,
         bound: usize,
-    ) -> Vec<HashMap<String, usize>> {
+    ) -> Vec<BTreeMap<String, usize>> {
         let mut satisfying_combinations = Vec::new();
 
         // Get the variable names
@@ -635,7 +642,7 @@ impl QuantifierVisitor {
         let mut current_values = vec![0; variable_names.len()];
 
         loop {
-            // Set each variable in the HashMap to its current value in the combination
+            // Set each variable in the BTreeMap to its current value in the combination
             for (i, var_name) in variable_names.iter().enumerate() {
                 variables.insert(var_name.clone(), current_values[i]);
             }
@@ -665,7 +672,7 @@ impl QuantifierVisitor {
 
     fn check_missing_variables_from_expr(
         expr: &str,
-        variables: &HashMap<String, usize>,
+        variables: &BTreeMap<String, usize>,
     ) -> (bool, Vec<String>) {
         // Split the expression by whitespace
         let parts: Vec<&str> = expr.split_whitespace().collect();
@@ -697,7 +704,7 @@ impl QuantifierVisitor {
     // With comparison operators {< , <= , >, >=}
     fn eval_forall_bounds(
         expr: &str,
-        variables: &HashMap<String, usize>,
+        variables: &BTreeMap<String, usize>,
         lower_bound: usize,
         upper_bound: usize,
     ) -> bool {
@@ -752,7 +759,7 @@ impl QuantifierVisitor {
 
     fn can_be_evaluated_by_eval_forall_bounds(
         expr: &str,
-        variables: &HashMap<String, usize>,
+        variables: &BTreeMap<String, usize>,
     ) -> bool {
         // Tokenize the expression by splitting on whitespace
         let parts: Vec<&str> = expr.split_whitespace().collect();
@@ -782,10 +789,10 @@ impl QuantifierVisitor {
 
     fn find_satisfying_values(
         expr: &str,
-        variables: &mut HashMap<String, usize>,
+        variables: &mut BTreeMap<String, usize>,
         lower_bound: usize,
         upper_bound: usize,
-    ) -> Vec<HashMap<String, usize>> {
+    ) -> Vec<BTreeMap<String, usize>> {
         let mut satisfying_combinations = Vec::new();
         let _parts: Vec<&str> = expr.split_whitespace().collect();
 
@@ -795,7 +802,7 @@ impl QuantifierVisitor {
         // Generate all combinations within the range and evaluate them
         let mut current_values = vec![lower_bound; variable_names.len()];
         loop {
-            // Set variable values in the HashMap
+            // Set variable values in the BTreeMap
             for (i, var_name) in variable_names.iter().enumerate() {
                 variables.insert(var_name.clone(), current_values[i]);
             }

@@ -1711,6 +1711,12 @@ fn parse_and_format(
                 visitors::modular_flattener_visitor::ModularFlattenerVisitor::new();
             modular_flattener_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "PreProcessVisitor" => {
+            // Create an instance of PreProcessVisitor with the target_name from CoreDatum
+            let pre_process_visitor =
+                visitors::pre_process_visitor::PreProcessVisitor::new();
+                pre_process_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "RangeBoundsVisitor" => {
             // Create an instance of RangeBoundsVisitor with the target_name from CoreDatum
             let range_bounds_visitor = visitors::range_bounds_visitor::RangeBoundsVisitor::new(

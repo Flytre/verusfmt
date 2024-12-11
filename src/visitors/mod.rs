@@ -3,6 +3,7 @@ pub mod function_inline_visitor;
 pub mod lambda_visitor;
 pub mod loop_visitor;
 pub mod modular_flattener_visitor;
+pub mod pre_process_visitor;
 pub mod quantifier_visitor;
 pub mod range_bounds_visitor;
 pub mod recursion_visitor;
