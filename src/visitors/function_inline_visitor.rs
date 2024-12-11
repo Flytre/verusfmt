@@ -7,6 +7,7 @@ use pest::Parser;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 use std::collections::HashSet;
+use std::collections::HashMap;
 
 
 lazy_static! {
@@ -242,7 +243,7 @@ impl FunctionInlineVisitor {
                                     let mut d = InlinerDatum {
                                         program: "".to_string(),
                                         inlined_args: args.clone(),
-                                        original_args: vec![],
+                                        original_args: HashMap::new(),
                                     };
                                     InlineSingleFunctionCallVisitor::inline_func(&mut d, reparsed.unwrap());
                                     datum.program += format!("\n{}", d.program).as_str();
@@ -277,7 +278,8 @@ impl FunctionInlineVisitor {
 pub struct InlinerDatum {
     pub program: String,
     pub inlined_args: Vec<String>,
-    pub original_args: Vec<String>,
+    pub original_args: HashMap<String,String>,
+    // pub original_args: Vec<String>,
 }
 
 impl HasProgram for InlinerDatum {
@@ -296,6 +298,7 @@ impl InlineSingleFunctionCallVisitor {
             "identifier",
             InlineSingleFunctionCallVisitor::visit_identifier,
         );
+        handlers.insert("arg_list", InlineSingleFunctionCallVisitor::visit_arg_list);
         handlers
     }
 
@@ -304,6 +307,9 @@ impl InlineSingleFunctionCallVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<InlinerDatum>,
     ) {
+        let mut param_name: Option<String> = None;
+        let mut param_type: Option<String> = None;
+    
         for fn_comp in pair.clone().into_inner() {
             match fn_comp.as_rule() {
                 Rule::name => {
@@ -319,9 +325,18 @@ impl InlineSingleFunctionCallVisitor {
                     datum.program += "(";
                     for param in fn_comp.clone().into_inner() {
                         for pc in param.clone().into_inner() {
-                            if pc.as_rule() == Rule::pat_no_top_alt {
-                                datum.original_args.push(pc.as_str().to_string());
+                            if pc.as_rule() == Rule::r#type {
+                                param_type = Some(pc.as_str().to_string());
                             }
+                            if pc.as_rule() == Rule::pat_no_top_alt {
+                                param_name = Some(pc.as_str().to_string());
+                            }
+                        }
+    
+                        // Insert param_name into the map with param_type or an empty string if param_type is None
+                        if let Some(param_name) = param_name.take() {
+                            let param_type_value = param_type.take().unwrap_or_else(String::new);
+                            datum.original_args.insert(param_name, param_type_value);
                         }
                     }
                     datum.program += ") ";
@@ -330,6 +345,62 @@ impl InlineSingleFunctionCallVisitor {
             }
         }
     }
+    
+    fn visit_arg_list(
+        datum: &mut InlinerDatum,
+        pair: Pair<Rule>,
+        _handlers: &dyn HandlerInterface<InlinerDatum>,
+    ) {
+        let mut arg_list_replacement = String::from("("); // Start the argument list
+    
+        let mut first = true; // Track whether it's the first argument for comma placement
+    
+        for inner_pair in pair.clone().into_inner() { // Iterate over comma-delimited arguments
+    
+            for inner_inner_pair in inner_pair.clone().into_inner() { // Iterate over inner expression components
+                // println!(
+                //     "inner----- exprs {:?} , {:?}",
+                //     inner_inner_pair.as_rule(),
+                //     inner_inner_pair.as_str()
+                // );
+    
+                let param_arg_exprs = inner_inner_pair.as_str();
+    
+                if let Some(index) = datum.original_args.keys().position(|key| key == param_arg_exprs) {
+                    let inlined_value = datum
+                        .inlined_args
+                        .get(index)
+                        .expect("Index out of bounds")
+                        .clone();
+    
+                    // Append a comma only if it's not the first argument
+                    if !first {
+                        arg_list_replacement.push_str(", ");
+                    }
+                    arg_list_replacement.push_str(&inlined_value);
+                } else {
+                    // If no replacement, use the original value
+                    if !first {
+                        arg_list_replacement.push_str(", ");
+                    }
+                    arg_list_replacement.push_str(param_arg_exprs);
+                }
+                first = false; // Subsequent arguments will need commas
+            }
+        }
+    
+        arg_list_replacement.push(')'); // Close the argument list
+        let new_val = VerusParser::parse(Rule::arg_list, arg_list_replacement.as_str())
+            .map_err(ParseAndFormatError::from)
+            .expect("Parsing inlined argument failed")
+            .next()
+            .unwrap();
+        datum.program_mut().push_str(new_val.as_str());
+    }
+    
+
+
+
 
     pub fn visit_identifier(
         datum: &mut InlinerDatum,
@@ -337,13 +408,24 @@ impl InlineSingleFunctionCallVisitor {
         handlers: &dyn HandlerInterface<InlinerDatum>,
     ) {
         let identifier = pair.as_str();
-        if let Some(index) = datum.original_args.iter().position(|arg| arg == identifier) {
-            let inlined_value = datum.inlined_args.get(index).unwrap().clone();
-            let new_val = VerusParser::parse(Rule::int_number, inlined_value.as_str())
+        // Find the corresponding index in original_args
+        if let Some(index) = datum.original_args.keys().position(|key| key == identifier) {
+            // Retrieve the inlined value from inlined_args using the index
+            let inlined_value = datum.inlined_args.get(index).expect("Index out of bounds").clone();
+            // Parse the inlined value
+            let typed_inlined_value = format!(
+                "{}{}",
+                inlined_value,
+                datum.original_args.get(identifier).map_or("", |v| v.as_str())
+            );            
+            
+            // let new_val = VerusParser::parse(Rule::int_number, &inlined_value)
+            let new_val = VerusParser::parse(Rule::int_number, typed_inlined_value.as_str())
                 .map_err(ParseAndFormatError::from)
                 .expect("Parsing inlined argument failed")
                 .next()
                 .unwrap();
+            // Visit the parsed value
             VerusVisitor::visit(datum, new_val, handlers);
         } else {
             VerusVisitor::default_visit(datum, pair, handlers);

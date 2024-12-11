@@ -23,8 +23,16 @@ spec fn is_prime(candidate: nat) -> bool {
 
 
 fn main() {
-
-    assert(is_prime(11));
+    assert(is_prime(5));
+    
+    // // assert(is_prime(11) && is_prime(7));
+    // let x: u32 = 3;
+    // assert(x > 0);
+    // proof
+    // {
+    //     assert(1 < 11);
+    //     assert(!(11 % 2 == 0));
+    // }
     
 }
 
