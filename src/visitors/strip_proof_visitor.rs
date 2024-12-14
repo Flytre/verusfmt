@@ -2,7 +2,6 @@ use crate::visitors::visitor::{CoreDatum, HandlerInterface, HandlerMap, HasProgr
 use crate::Rule;
 use pest::iterators::{Pair, Pairs}; // Import Pair and Pairs
 
-// Define a new struct for your custom visitor
 pub struct StripProofVisitor {
     _target_name: String, // Store target_name within StripProofVisitor
 }
@@ -17,11 +16,9 @@ impl StripProofVisitor {
         // handlers.insert("assert_expr", StripProofVisitor::visit_assert_expr);
         handlers.insert("stmt", StripProofVisitor::visit_stmt_expr);
         handlers.insert("fn", StripProofVisitor::visit_function);
-        handlers.insert("identifier", StripProofVisitor::visit_identifier);
         handlers.insert("loop_clause", StripProofVisitor::visit_loop_clause);
         handlers
     }
-    // loop_clause
 
     pub fn visit_all(&self, datum: &mut CoreDatum, pairs: Pairs<Rule>) {
         let handler_map = Self::create_custom_handler_map();
@@ -43,6 +40,19 @@ impl StripProofVisitor {
             // println!("AT Iner Stmt {:?}, {:?}", first_pair.as_str(), first_pair.as_rule());
             if first_pair.as_rule() == Rule::proof_block {
                 // do nothing -- i.e. remove proof block
+                let mut inner_proof_block_pairs= first_pair.clone().into_inner();
+                for inner_proof_block_pair in inner_proof_block_pairs {
+                    match inner_proof_block_pair.as_rule(){
+                        Rule::stmt_list => {
+                            datum.program_mut().push_str("{\n");
+                            VerusVisitor::visit_all(datum, inner_proof_block_pair.clone().into_inner(), handlers);
+                            datum.program_mut().push_str("\n}");
+                        }
+                        _ => {
+                            VerusVisitor::default_visit(datum, inner_proof_block_pair, handlers);
+                        }
+                    }
+                }
             } else {
                 let mut inner_inner_pairs = first_pair.clone().into_inner();
                 if let Some(first_inner_pair) = inner_inner_pairs.next() {
@@ -75,18 +85,6 @@ impl StripProofVisitor {
         // do nothing -- i.e. remove loop clause
     }
 
-    fn visit_identifier(
-        datum: &mut CoreDatum,
-        pair: Pair<Rule>,
-        _handlers: &dyn HandlerInterface<CoreDatum>,
-    ) {
-        let name = pair.as_str();
-        if name == datum.target_name {
-            datum.program_mut().push_str(&format!("new_{} ", name));
-        } else {
-            datum.program_mut().push_str(&format!("{} ", name));
-        }
-    }
 
     /// Handler for the "fn" rule. This is a Core-specific handler.
     fn visit_function(
