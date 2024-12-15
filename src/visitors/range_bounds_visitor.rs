@@ -197,14 +197,16 @@ impl RangeBoundsVisitor {
         
         // Check for vector types
         else if param_type.starts_with("&Vec<")
-                || param_type.starts_with("Vec<") 
-                || param_type.starts_with("Seq<") {
+        || param_type.starts_with("Vec<") 
+        || param_type.starts_with("Seq<") 
+        || param_type.starts_with("Set<")
+        || param_type.starts_with("Map<") { 
             // Add the parameter to vector_params regardless of the inner type
             vector_params.push(param.clone());
         }
-    }
+    }   
 
-        // Generate expressions only if there are numerical parameters or vector parameters
+        // Generatssions only if there are numerical parameters or vector parameters
         let mut expressions = Vec::new();
 
         // Add expressions for numerical parameters
@@ -222,7 +224,19 @@ impl RangeBoundsVisitor {
             expressions.extend(
                 vector_params
                     .into_iter()
-                    .map(|param| format!("{}.len() <= {}", param, datum.finite_bound)),
+                    .map(|param| {
+                        if param_map.get(&param).unwrap_or(&String::new()).starts_with("Set<") {
+                            // Special handling for Set: Example constraints
+                            format!("{}.len() <= {},\n {}.finite()", param, datum.finite_bound, param)
+                        } 
+                        else if param_map.get(&param).unwrap_or(&String::new()).starts_with("Map<") {
+                            // Special handling for Set: Example constraints
+                            format!("{}.dom().len() <= {},\n {}.dom().finite()", param, datum.finite_bound, param)
+                        }else {
+                            // General handling for Vec or Seq
+                            format!("{}.len() <= {}", param, datum.finite_bound)
+                        }
+                    }),
             );
         }
 
