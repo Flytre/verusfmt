@@ -58,59 +58,59 @@ impl Tree {
     //         } 
     //     }
     // }
-    spec fn maxDepth3(&self) -> bool
-        decreases self,
-    {
-        self.view().len() <= 3
-        && match *self {
-            Tree::Nil => true,
-            Tree::Node { value, left, right } => {
-                &&& left.maxDepth2()
-                &&& right.maxDepth2()
-            },
-        }
+    // spec fn maxDepth3(&self) -> bool
+    //     decreases self,
+    // {
+    //     self.view().len() <= 3
+    //     && match *self {
+    //         Tree::Nil => true,
+    //         Tree::Node { value, left, right } => {
+    //             &&& left.maxDepth2()
+    //             &&& right.maxDepth2()
+    //         },
+    //     }
 
-    }
+    // }
 
-    spec fn maxDepth2(&self) -> bool
-        decreases self,
-    {
-        self.view().len() <= 2
-        && match *self {
-            Tree::Nil => true,
-            Tree::Node { value, left, right } => {
-                &&& left.maxDepth1()
-                &&& right.maxDepth1()
-            },
-        }
+    // spec fn maxDepth2(&self) -> bool
+    //     decreases self,
+    // {
+    //     self.view().len() <= 2
+    //     && match *self {
+    //         Tree::Nil => true,
+    //         Tree::Node { value, left, right } => {
+    //             &&& left.maxDepth1()
+    //             &&& right.maxDepth1()
+    //         },
+    //     }
 
-    }
+    // }
 
-    spec fn maxDepth1(&self) -> bool
-        decreases self,
-    {
+    // spec fn maxDepth1(&self) -> bool
+    //     decreases self,
+    // {
         
-        self.view().len() <= 1
-        && match *self {
-            Tree::Nil => true,
-            Tree::Node { value, left, right } => {
-                &&& left.maxDepth0()
-                &&& right.maxDepth0()
-            },
-        }
+    //     self.view().len() <= 1
+    //     && match *self {
+    //         Tree::Nil => true,
+    //         Tree::Node { value, left, right } => {
+    //             &&& left.maxDepth0()
+    //             &&& right.maxDepth0()
+    //         },
+    //     }
 
-    }
+    // }
 
-    spec fn maxDepth0(&self) -> bool
-        decreases self,
-    {
-        self.view().len() <= 0
-        && match *self {
-            Tree::Nil => true,
-            Tree::Node { value, left, right } => false,
-        }
+    // spec fn maxDepth0(&self) -> bool
+    //     decreases self,
+    // {
+    //     self.view().len() <= 0
+    //     && match *self {
+    //         Tree::Nil => true,
+    //         Tree::Node { value, left, right } => false,
+    //     }
 
-    }
+    // }
     
 }
 
@@ -132,7 +132,7 @@ spec fn sequence_is_sorted(s: Seq<int>) -> bool {
 proof fn sorted_tree_means_sorted_sequence(tree: Tree)
     requires
         tree.is_sorted(),
-        tree.maxDepth3()
+        // tree.maxDepth3()
     ensures
         sequence_is_sorted(tree@),
     decreases tree  // guessed by Dafny ,

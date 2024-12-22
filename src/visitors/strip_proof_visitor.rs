@@ -40,7 +40,7 @@ impl StripProofVisitor {
             // println!("AT Iner Stmt {:?}, {:?}", first_pair.as_str(), first_pair.as_rule());
             if first_pair.as_rule() == Rule::proof_block {
                 // do nothing -- i.e. remove proof block
-                let mut inner_proof_block_pairs= first_pair.clone().into_inner();
+                let inner_proof_block_pairs= first_pair.clone().into_inner();
                 for inner_proof_block_pair in inner_proof_block_pairs {
                     match inner_proof_block_pair.as_rule(){
                         Rule::stmt_list => {

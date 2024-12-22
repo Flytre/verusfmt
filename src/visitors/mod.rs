@@ -7,6 +7,7 @@ pub mod pre_process_visitor;
 pub mod quantifier_visitor;
 pub mod range_bounds_visitor;
 pub mod recursion_visitor;
+pub mod recursive_datatype_visitor;
 pub mod reveal_visitor;
 pub mod set_subset_visitor;
 pub mod simple_visitor;

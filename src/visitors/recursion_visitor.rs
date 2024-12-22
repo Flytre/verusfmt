@@ -60,25 +60,6 @@ impl RecursionVisitor {
             *parent_name = Some(name.to_string());
         }
        
-        for inner_pair in pair.clone().into_inner() {
-            println!("IMPL!! Inner {:?} :: {:?}", inner_pair.clone().as_rule(),inner_pair.clone().as_str());
-        //     match inner_pair.as_rule() {
-        //         Rule::assoc_item_list => {
-        //             for inner_assoc_item_list_pair in inner_pair.clone().into_inner() {
-        //                 println!("IMPL!! Inner {:?} :: {:?}", inner_assoc_item_list_pair.clone().as_rule(),inner_assoc_item_list_pair.clone().as_str());
-        //                 for inner_inner_assoc_item_list_pair in inner_assoc_item_list_pair.clone().into_inner() {
-        //                     println!("IMPL!! INNER Inner {:?} :: {:?}", inner_inner_assoc_item_list_pair.clone().as_rule(),inner_inner_assoc_item_list_pair.clone().as_str());
-        //                     for inner_inner_inner_assoc_item_list_pair in inner_inner_assoc_item_list_pair.clone().into_inner() {
-        //                         println!("----IMPL!! INNER Inner {:?} :: {:?}", inner_inner_inner_assoc_item_list_pair.clone().as_rule(),inner_inner_inner_assoc_item_list_pair.clone().as_str());
-        
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //         _ => {}
-            // }
-
-        }
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         {
             let mut parent_name = PARENT_IMPL_NAME.lock().unwrap();
@@ -86,15 +67,6 @@ impl RecursionVisitor {
         }
        
 
-
-        // let recursive_fncs = RECURSIVE_FNCS.lock().unwrap();
-
-        // for (_key, value) in recursive_fncs.iter() {
-        //     // println!("Key: {}, Value: {}", key, value);
-        //     datum.program_mut().push_str(value);
-        // }
-
-        // datum.program_mut().push_str("}");
     }
 
 
@@ -161,12 +133,12 @@ impl RecursionVisitor {
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
         let current_parent_name = PARENT_FUNCTION_NAME.lock().unwrap().clone();
-        println!(
-            "Expr = {:?} {:?}:: Parent function name is: {}",
-            pair.as_str(),
-            pair.as_rule(),
-            current_parent_name
-        );
+        // println!(
+        //     "Expr = {:?} {:?}:: Parent function name is: {}",
+        //     pair.as_str(),
+        //     pair.as_rule(),
+        //     current_parent_name
+        // );
     
         let current_impl_parent_name = PARENT_IMPL_NAME.lock().unwrap().clone();
         let mut impl_self_fn_name: Option<String> = None;
@@ -177,7 +149,7 @@ impl RecursionVisitor {
         let expr_clone = pair.clone();
     
         for inner_pair in expr_clone.clone().into_inner() {
-            println!("inner = {:?} -- {:?}", inner_pair.as_rule(), inner_pair.as_str());
+            // println!("inner = {:?} -- {:?}", inner_pair.as_rule(), inner_pair.as_str());
             match inner_pair.as_rule() {
                 Rule::expr_inner => {
                     // Existing handling for simple function names
@@ -220,7 +192,7 @@ impl RecursionVisitor {
                 let finite_bound = datum.finite_bound;
     
                 // Modify the program with the updated function call
-                if(receiver_seen){
+                if receiver_seen {
                     datum.program_mut().push_str(&format!(
                         "{}.{}_{}({})",
                         caller_name, function_name, finite_bound, arguments
