@@ -1735,6 +1735,12 @@ fn parse_and_format(
                 visitors::recursion_visitor::RecursionVisitor::new(visit_dat.target_name.clone());
             recursion_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
         }
+        "RecursiveDatatypeVisitor" => {
+            // Create an instance of RecursiveDatatypeVisitor with the target_name from CoreDatum
+            let recursive_datatype_visitor =
+                visitors::recursive_datatype_visitor::RecursiveDatatypeVisitor::new(visit_dat.target_name.clone());
+                recursive_datatype_visitor.visit_all(visit_dat, parsed_file); // Call visit_all on the instance
+        }
         "RevealVisitor" => {
             // Create an instance of RevealVisitor with the target_name from CoreDatum
             let reveal_visitor =

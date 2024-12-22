@@ -3,22 +3,16 @@ use crate::Rule;
 use crate::VerusParser;
 use pest::iterators::{Pair, Pairs};
 use std::collections::HashMap;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 
-// #[derive(Clone, Debug)]
-// pub struct RangeBoundsDatum {
-//     pub program: String,
-//     pub param_map: HashMap<String,String>,
-// }
 
-// impl HasProgram for RangeBoundsDatum {
-//     fn program(&self) -> &String {
-//         &self.program
-//     }
+lazy_static! {
+    static ref PARENT_IMPL_NAME: Mutex<Option<String>> = Mutex::new(None);
+    static ref IS_VALID_VIEW_TO_SEQ: Mutex<bool> = Mutex::new(false);
+    static ref ENUM_NAME: Mutex<Option<String>> = Mutex::new(None); // To store the enum name
 
-//     fn program_mut(&mut self) -> &mut String {
-//         &mut self.program
-//     }
-// }
+}
 
 // Define a new struct for your custom visitor
 pub struct RangeBoundsVisitor {
@@ -33,6 +27,8 @@ impl RangeBoundsVisitor {
     fn create_custom_handler_map() -> HandlerMap<CoreDatum> {
         let mut handlers = HandlerMap::new();
         handlers.insert("fn", RangeBoundsVisitor::visit_function);
+        handlers.insert("impl", RangeBoundsVisitor::visit_impl);
+        handlers.insert("enum", RangeBoundsVisitor::visit_enum);
 
         handlers
     }
@@ -46,6 +42,52 @@ impl RangeBoundsVisitor {
         );
     }
 
+    fn visit_impl(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+
+        let name = pair
+            .clone()
+            .into_inner()
+            .find(|p| p.as_rule() == Rule::r#type)
+            .expect("Function must have a name")
+            .as_str();
+        {
+            let mut parent_name = PARENT_IMPL_NAME.lock().unwrap();
+            *parent_name = Some(name.to_string());
+        }
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+        {
+            let mut parent_name = PARENT_IMPL_NAME.lock().unwrap();
+            *parent_name = None;
+        }
+       
+    }
+
+    fn visit_enum(
+        datum: &mut CoreDatum,
+        pair: Pair<Rule>,
+        handlers: &dyn HandlerInterface<CoreDatum>,
+    ) {
+    
+        // Reset enum_name for each visit
+        *ENUM_NAME.lock().unwrap() = None;
+    
+        for inner_pair in pair.clone().into_inner() {
+            match inner_pair.as_rule() {
+                Rule::name => {
+                    *ENUM_NAME.lock().unwrap() = Some(inner_pair.as_str().to_string()); // Capture the enum name
+                }
+                _ => {}
+            }
+        }
+        VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+
+    }
+
+
     fn visit_function(
         datum: &mut CoreDatum,
         pair: Pair<Rule>,
@@ -57,6 +99,36 @@ impl RangeBoundsVisitor {
         let mut param_map = HashMap::new();
         let mut is_spec_mode = false; // Flag to check if fn_mode is "spec"
 
+
+        /////
+        let current_impl_parent_name = PARENT_IMPL_NAME.lock().unwrap().clone();
+    
+        let name = pair
+            .clone()
+            .into_inner()
+            .find(|p| p.as_rule() == Rule::name)
+            .expect("Function must have a name")
+            .as_str();
+    
+        let ret_type = pair
+            .clone()
+            .into_inner()
+            .find(|p| p.as_rule() == Rule::ret_type);
+    
+        if let Some(_current_impl_parent_name) = current_impl_parent_name {
+            if name == "view" {
+                if let Some(ret_type_pair) = ret_type {
+                    let ret_type_str = ret_type_pair.as_str();
+                    if ret_type_str.contains("Seq<") {
+                        {
+                            let mut is_valid_view_to_seq = IS_VALID_VIEW_TO_SEQ.lock().unwrap();
+                            *is_valid_view_to_seq = Some(true).is_some();
+                        }
+                    }
+                }
+            }
+        }
+        /////
         for inner_pair in pair.clone().into_inner() {
             match inner_pair.as_rule() {
                 Rule::param_list => {
@@ -184,29 +256,40 @@ impl RangeBoundsVisitor {
     ) -> Option<String> {
         // List of recognized numerical types
         let numerical_types = ["int", "nat", "u32", "i32", "u64", "f32", "f64"];
-
+        let enum_name = ENUM_NAME.lock().unwrap();
+    
         // Collect parameters with numerical types
         let mut numerical_params = Vec::new();
         let mut vector_params = Vec::new(); // Store vector type parameters
-
-    for (param, param_type) in param_map {
-        // Check for simple numerical types
-        if numerical_types.contains(&param_type.as_str()) {
-            numerical_params.push(param.clone());
-        } 
-        
-        // Check for vector types
-        else if param_type.starts_with("&Vec<")
-                || param_type.starts_with("Vec<") 
-                || param_type.starts_with("Seq<") {
-            // Add the parameter to vector_params regardless of the inner type
-            vector_params.push(param.clone());
+        let mut recursive_expressions = Vec::new(); // Store recursive expressions
+    
+        for (param, param_type) in param_map {
+            // Check for simple numerical types
+            if let Some(ref enum_name) = *enum_name {
+                if *enum_name == *param_type {
+                    // Add recursive expression
+                    recursive_expressions.push(format!("{}.maxDepth_{}()", param, datum.finite_bound));
+                }
+            }
+    
+            if numerical_types.contains(&param_type.as_str()) {
+                numerical_params.push(param.clone());
+            }
+            // Check for vector types
+            else if param_type.starts_with("&Vec<")
+                || param_type.starts_with("Vec<")
+                || param_type.starts_with("Seq<")
+                || param_type.starts_with("Set<")
+                || param_type.starts_with("Map<")
+            {
+                // Add the parameter to vector_params regardless of the inner type
+                vector_params.push(param.clone());
+            }
         }
-    }
-
+    
         // Generate expressions only if there are numerical parameters or vector parameters
         let mut expressions = Vec::new();
-
+    
         // Add expressions for numerical parameters
         if !numerical_params.is_empty() {
             expressions.extend(numerical_params.into_iter().flat_map(|param| {
@@ -216,16 +299,33 @@ impl RangeBoundsVisitor {
                 ]
             }));
         }
-
+    
         // Add expressions for vector parameters (only for length)
         if !vector_params.is_empty() {
             expressions.extend(
                 vector_params
                     .into_iter()
-                    .map(|param| format!("{}.len() <= {}", param, datum.finite_bound)),
+                    .map(|param| {
+                        if param_map.get(&param).unwrap_or(&String::new()).starts_with("Set<") {
+                            // Special handling for Set: Example constraints
+                            format!("{}.len() <= {},\n {}.finite()", param, datum.finite_bound, param)
+                        } else if param_map.get(&param).unwrap_or(&String::new()).starts_with("Map<") {
+                            // Special handling for Map: Example constraints
+                            format!(
+                                "{}.dom().len() <= {},\n {}.dom().finite()",
+                                param, datum.finite_bound, param
+                            )
+                        } else {
+                            // General handling for Vec or Seq
+                            format!("{}.len() <= {}", param, datum.finite_bound)
+                        }
+                    }),
             );
         }
-
+    
+        // Add recursive expressions
+        expressions.extend(recursive_expressions);
+    
         // If we have any expressions, join and return them
         if !expressions.is_empty() {
             Some(expressions.join(",\n "))
@@ -233,4 +333,5 @@ impl RangeBoundsVisitor {
             None // No parameters found
         }
     }
+    
 }
