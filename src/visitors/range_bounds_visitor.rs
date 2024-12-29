@@ -5,12 +5,14 @@ use pest::iterators::{Pair, Pairs};
 use std::collections::HashMap;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+use std::collections::HashSet; 
 
 
 lazy_static! {
     static ref PARENT_IMPL_NAME: Mutex<Option<String>> = Mutex::new(None);
     static ref IS_VALID_VIEW_TO_SEQ: Mutex<bool> = Mutex::new(false);
     static ref ENUM_NAME: Mutex<Option<String>> = Mutex::new(None); // To store the enum name
+    static ref ENUM_NAMES: Mutex<HashSet<String>> = Mutex::new(HashSet::new()); // To store all enum names
 
 }
 
@@ -66,27 +68,46 @@ impl RangeBoundsVisitor {
        
     }
 
+    // fn visit_enum(
+    //     datum: &mut CoreDatum,
+    //     pair: Pair<Rule>,
+    //     handlers: &dyn HandlerInterface<CoreDatum>,
+    // ) {
+    
+    //     // Reset enum_name for each visit
+    //     *ENUM_NAME.lock().unwrap() = None;
+    
+    //     for inner_pair in pair.clone().into_inner() {
+    //         match inner_pair.as_rule() {
+    //             Rule::name => {
+    //                 *ENUM_NAME.lock().unwrap() = Some(inner_pair.as_str().to_string()); // Capture the enum name
+    //             }
+    //             _ => {}
+    //         }
+    //     }
+    //     VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
+
+    // }
+
+    
     fn visit_enum(
         datum: &mut CoreDatum,
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-    
-        // Reset enum_name for each visit
-        *ENUM_NAME.lock().unwrap() = None;
-    
         for inner_pair in pair.clone().into_inner() {
             match inner_pair.as_rule() {
                 Rule::name => {
-                    *ENUM_NAME.lock().unwrap() = Some(inner_pair.as_str().to_string()); // Capture the enum name
+                    let enum_name = inner_pair.as_str().to_string(); // Capture the enum name
+                    ENUM_NAMES.lock().unwrap().insert(enum_name);   // Add it to the set
                 }
                 _ => {}
             }
         }
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
-
     }
 
+    
 
     fn visit_function(
         datum: &mut CoreDatum,
@@ -193,7 +214,7 @@ impl RangeBoundsVisitor {
 
         // Construct the new function representation
         let mut full_string = String::new();
-        let new_requires_expression = Self::generate_requires_expression(datum, &param_map);
+        let new_requires_expression = Self::generate_requires_expression(datum, &param_map, name);
 
         for (i, inner) in pair.clone().into_inner().enumerate() {
             match inner.as_rule() {
@@ -253,10 +274,17 @@ impl RangeBoundsVisitor {
     fn generate_requires_expression(
         datum: &mut CoreDatum,
         param_map: &HashMap<String, String>,
+        function_name: &str, // Add function name as a parameter
     ) -> Option<String> {
+        use regex::Regex;
+    
         // List of recognized numerical types
         let numerical_types = ["int", "nat", "u32", "i32", "u64", "f32", "f64"];
-        let enum_name = ENUM_NAME.lock().unwrap();
+        let enum_names = ENUM_NAMES.lock().unwrap(); // Access the set of enum names
+    
+        // Regex to check if function name ends with "_n" where 'n' is a number
+        let re = Regex::new(r"_([0-9]+)$").unwrap();
+        let bound_override = re.captures(function_name).and_then(|cap| cap.get(1).map(|m| m.as_str()));
     
         // Collect parameters with numerical types
         let mut numerical_params = Vec::new();
@@ -264,14 +292,16 @@ impl RangeBoundsVisitor {
         let mut recursive_expressions = Vec::new(); // Store recursive expressions
     
         for (param, param_type) in param_map {
-            // Check for simple numerical types
-            if let Some(ref enum_name) = *enum_name {
-                if *enum_name == *param_type {
-                    // Add recursive expression
-                    recursive_expressions.push(format!("{}.maxDepth_{}()", param, datum.finite_bound));
-                }
+            // Check if the param_type matches any of the stored enum names
+            if enum_names.contains(param_type.trim_start_matches('&')) {
+                // Use the overridden bound if available, otherwise use datum.finite_bound
+                let bound = bound_override
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| datum.finite_bound.to_string());
+                            recursive_expressions.push(format!("{}.maxDepth_{}()", param, bound));
             }
     
+            // Check for simple numerical types
             if numerical_types.contains(&param_type.as_str()) {
                 numerical_params.push(param.clone());
             }
@@ -334,4 +364,5 @@ impl RangeBoundsVisitor {
         }
     }
     
-}
+    
+}    

@@ -110,38 +110,63 @@ impl RecursiveDatatypeVisitor {
                 if let Some(fields) = field_list {
                     // Include fields in the match arm if they exist
                     let field_bindings = fields.join(", ");
-                    result_string.push_str(&format!(" {{ {} }} => ", field_bindings));
+                    result_string.push_str(&format!(" {{ {} }} => {{\n", field_bindings));
     
                     if n == 0 {
                         // Base case for maxDepth_0
-                        result_string.push_str("false");
+                        result_string.push_str("            false");
                     } else {
                         // Recursive case for maxDepth_n
-                        let recursive_fields: Vec<String> = fields
-                            .iter()
-                            .filter(|&field| recursive_field_names.contains(field))
-                            .map(|field| format!("{}.maxDepth_{}()", field, n - 1))
-                            .collect();
+                        let mut all_conditions = Vec::new();
     
-                        if recursive_fields.is_empty() {
-                            result_string.push_str("true");
-                        } else {
-                            result_string.push_str(&format!("{{ {} }}", recursive_fields.join(" && ")));
+                        // Add `self.view().contains(...)` for fields not in `recursive_field_names`
+                        for field in fields.iter().filter(|&f| !recursive_field_names.contains(f)) {
+                            all_conditions.push(format!("self.view().contains({} as int)", field)); //TODO fix "as int" to be more generic
                         }
+    
+                        // Add conditions for each recursive field
+                        for field in fields.iter().filter(|&f| recursive_field_names.contains(f)) {
+                            // View-length conditions
+                            let mut field_conditions = Vec::new();
+                            for len in (1..=n).rev() {
+                                field_conditions.push(format!(
+                                    "(self.view().len() == {len} ==> ({}))",
+                                    (0..len)
+                                        .map(|i| format!("self.view().contains({}.view()[{}])", field, i))
+                                        .collect::<Vec<_>>()
+                                        .join(" && ")
+                                ));
+                            }
+    
+                            // Combine all conditions for this field
+                            all_conditions.push(field_conditions.join(" && "));
+    
+                            // Add recursive depth condition
+                            all_conditions.push(format!("{}.maxDepth_{}()", field, n - 1));
+                        }
+    
+                        // Combine all conditions into the match arm
+                        result_string.push_str(&format!(
+                            "            {}",
+                            all_conditions.join(" && ")
+                        ));
                     }
+    
+                    result_string.push_str("\n        },\n");
                 } else {
                     // Case for variants without fields (e.g., `Nil`)
                     result_string.push_str(if n == 0 { " => false" } else { " => true" });
                 }
-                result_string.push_str(",\n");
             }
         }
     
         // Close the match and the function
-        result_string.push_str("    }\n}\n");
+        result_string.push_str("        _ => false,\n    }\n}\n");
     
         result_string
     }
+    
+    
     
     
     
