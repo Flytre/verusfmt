@@ -296,9 +296,18 @@ impl RangeBoundsVisitor {
             if enum_names.contains(param_type.trim_start_matches('&')) {
                 // Use the overridden bound if available, otherwise use datum.finite_bound
                 let bound = bound_override
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| datum.finite_bound.to_string());
-                            recursive_expressions.push(format!("{}.maxDepth_{}()", param, bound));
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| datum.finite_bound.to_string());
+    
+                // Add the original recursive expression
+                recursive_expressions.push(format!("{}.maxDepth_{}()", param, bound));
+    
+                // Add the appropriate len() expression based on bound_override
+                if bound_override.is_some() {
+                    recursive_expressions.push(format!("{}@.len() < {}", param, bound));
+                } else {
+                    recursive_expressions.push(format!("{}@.len() == {}", param, bound));
+                }
             }
     
             // Check for simple numerical types
