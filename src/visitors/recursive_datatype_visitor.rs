@@ -127,7 +127,6 @@ impl RecursiveDatatypeVisitor {
                         // Add conditions for each recursive field
                         for field in fields.iter().filter(|&f| recursive_field_names.contains(f)) {
                             // View-length conditions
-                            println!("HERERERERER --> {}", field);
                             let mut field_conditions = Vec::new();
                             for len in (1..=n).rev() {
                                 field_conditions.push(format!(
