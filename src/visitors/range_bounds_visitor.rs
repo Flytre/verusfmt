@@ -306,7 +306,7 @@ impl RangeBoundsVisitor {
                 if bound_override.is_some() {
                     recursive_expressions.push(format!("{}@.len() < {}", param, bound));
                 } else {
-                    recursive_expressions.push(format!("{}@.len() == {}", param, bound));
+                    recursive_expressions.push(format!("{}@.len() <= {}", param, bound));
                 }
             }
     
