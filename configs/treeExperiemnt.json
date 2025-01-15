@@ -1,0 +1,16 @@
+{
+    "experiments": [
+        {
+            "name": "tree",
+            "program":  "./complexEx/sortedTreeFindInBinary.rs", 
+            "visitors": [
+                "Adaptive"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 4",
+                "--verifier-timeout 100"
+            ]
+        }
+    ]
+}

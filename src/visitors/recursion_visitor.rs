@@ -80,7 +80,9 @@ impl RecursionVisitor {
         let recursive_impl_fncs = RECURSIVE_IMPL_FNCS.lock().unwrap();
         for (_key, value) in recursive_impl_fncs.iter() {
             // println!("Key: {}, Value: {}", key, value);
-            datum.program_mut().push_str(value);
+            if(!datum.fn_map.contains_key(_key)){
+                datum.program_mut().push_str(value);
+            }
         }
         datum.program_mut().push_str("}\n");
     }
@@ -98,8 +100,10 @@ impl RecursionVisitor {
         let recursive_fncs = RECURSIVE_FNCS.lock().unwrap();
 
         for (_key, value) in recursive_fncs.iter() {
-            // println!("Key: {}, Value: {}", key, value);
-            datum.program_mut().push_str(value);
+            if(!datum.fn_map.contains_key(_key)){
+                // println!("Key: {}, Value: {}", _key, value);
+                datum.program_mut().push_str(value);
+            }
         }
 
         datum.program_mut().push_str("}");
@@ -190,7 +194,27 @@ impl RecursionVisitor {
         if let (Some(ref function_name), Some(arguments), Some(ref caller_name)) = (final_function_name, arguments,function_name) {
             if function_name == &current_parent_name {
                 let finite_bound = datum.finite_bound;
-    
+
+                // Check if the function name ends with "_0" i.e this is the base case, no need to recurse further! 
+                let ends_with_zero = function_name.ends_with("_0");
+                if ends_with_zero {
+                        // Modify the program with the updated function call
+                    if receiver_seen {
+                        datum.program_mut().push_str(&format!(
+                            "{}.{}({})",
+                            caller_name, function_name, arguments
+                        ));
+                    }else{
+                        datum.program_mut().push_str(&format!(
+                            "{}({})",
+                            function_name, arguments
+                        ));
+                    }
+
+
+                    return;
+                }
+
                 // Modify the program with the updated function call
                 if receiver_seen {
                     datum.program_mut().push_str(&format!(
@@ -203,6 +227,7 @@ impl RecursionVisitor {
                         function_name, finite_bound, arguments
                     ));
                 }
+
     
                 println!(
                     "Recursive Function called!: {} with args: {:?} {:?} {:?}",

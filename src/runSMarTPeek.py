@@ -12,7 +12,8 @@ VERUS_PATH = os.getenv("VERUS_PATH")
 
 global VISITORS
 VISITORS = "QuantifierVisitor,LoopVisitor,RangeBoundsVisitor,ModularFlattenerVisitor".split(',')
-
+global verifier_timeout
+verifier_timeout = 100
 
 def run_verus(file_path):
     # Determine the directory and filename of the input file
@@ -27,9 +28,11 @@ def run_verus(file_path):
     # Set the temp file path in the 'logs' directory, with a name based on the input file
     temp_file_path = logs_dir / f"{file_stem}_verus.log"
     print(f"verus log created at: {temp_file_path}")
+    print(f"rlimit = {verifier_timeout}")
+
     try:
         result = subprocess.run(
-            [VERUS_PATH, "--log-all","--time-expanded", file_path],
+            [VERUS_PATH, "--log-all","--time-expanded", "--rlimit", str(verifier_timeout), file_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -81,7 +84,6 @@ def run_verus_on_finitized_system(rust_file, type, bound=None):
         # if not str(new_file_path).startswith("tempFiles"):
         #     new_file_path = Path(rust_file).parent / "tempFiles" / new_file_name
 
-        # print(f"here {new_file_path}")
         # Set the path to ./tempFiles in the current working directory (pwd)
         # temp_files_dir = Path.cwd() / "tempFiles"
         # temp_files_dir.mkdir(exist_ok=True)  # Ensure the tempFiles directory exists
@@ -102,7 +104,10 @@ def run_verus_on_finitized_system(rust_file, type, bound=None):
         # Analyze the output of the Verus run
         status, assertion_code, failure_type = handle_verus_output(output) 
         if assertion_code:
-            print(f"Failed with assertion code = {assertion_code}")
+            if not (failure_type == "Aborted due to resource limit exceeded."):
+                print(f"Failed with assertion code = {assertion_code}")
+            else:
+                print("Aborted due to resource limit exceeded -- Might be correct! -- try increasing verification_timeout")
     
         print("--------------------\n")
         return status, assertion_code, failure_type  # Return the results for further processing
@@ -142,6 +147,8 @@ def analyze_output(output):
     if abort_pattern.search(output) and verification_results_pattern.search(output):
         return "Failure", None, None, "Aborted due to previous errors with no verified results.", None
 
+
+
     # Check for mismatched types error
     mismatched_types_pattern = re.compile(
         r"error\[E0308\]: mismatched types\s*"
@@ -177,6 +184,12 @@ def analyze_output(output):
     total_time_pattern = re.compile(r"total-time:\s+(\d+)\s+ms")
     time_match = total_time_pattern.search(output)
     total_time = time_match.group(1) if time_match else "N/A"
+
+    # Check for resource limit exceeded
+    resource_limit_pattern = re.compile(r"Resource limit \(rlimit\) exceeded;")  # New pattern for resource limit
+    if resource_limit_pattern.search(output):
+        return "Failure", None, None, "Aborted due to resource limit exceeded.", "Aborted due to resource limit exceeded.", total_time
+
 
     # If no specific error found, default to success
     if not any(pattern.search(output) for pattern in error_patterns.values()):
@@ -261,7 +274,6 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
 
         new_file_path = temp_files_dir / new_file_name
 
-
         if not new_file_path.is_file():
             print(f"Error: The file '{new_file_path}' does not exist.")
             return
@@ -276,12 +288,15 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
             print("\n--------------------")
             print("Finitization (Impl) Step")
             print("--------------------\n")
-            run_cargo(new_file_path, assertion_code)
-            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only")
+            run_cargo(new_file_path, assertion_code, bound=bound)
+            status, assertion_code, failure_type = run_verus_on_finitized_system(new_file_path, "Impl Only", bound=bound)
 
             if status == "Failure":
-                print("IMPL IS INCORRECT")
-                return
+                if not (failure_type == "Aborted due to resource limit exceeded."):
+                    print("IMPL IS INCORRECT")
+                    return
+                else:
+                    print(f"IMPL *maybe* INCORRECT -- {failure_type}")
 
     print("----------------------------------------\n")
 
@@ -298,8 +313,8 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
             print("Finitization (proof) Step")
             print("--------------------\n")
 
-            run_cargo(rust_file, assertion_code)
-            run_verus_on_finitized_system(rust_file, "Proof")
+            run_cargo(new_file_path, assertion_code, bound=bound)
+            run_verus_on_finitized_system(rust_file, "Proof", bound=bound)
 
 
 
@@ -381,6 +396,9 @@ def iterativePass(rust_file, mode='Full', bound=None):
 
 
     
+def adaptive_verification(rust_file,bound=None):
+    print("ADAPTIVE")
+
 
 def main(rust_file, mode='Full', bound=None, iterative=False):
     if not Path(rust_file).is_file():
@@ -405,6 +423,8 @@ if __name__ == "__main__":
                         help='Enable iterative mode for verification (requires --bound).')
     parser.add_argument('--visitors', type=str, default=None, 
                         help='Comma-separated list of visitors to use (default: built-in list).')
+    parser.add_argument('--verifier-timeout', type=int, default=None, 
+                        help='Timeout (--rlimit) for each verus invocation -- corresponds to approximately a 10th of a second. Default is 100 (10 seconds)')
 
     # Collect all arguments except the last one as input
     args, input_file = parser.parse_known_args()  # Parse the arguments
@@ -416,6 +436,16 @@ if __name__ == "__main__":
     # Update the global VISITORS variable if --visitors is provided
     if args.visitors:
         VISITORS = [visitor.strip() for visitor in args.visitors.split(',')]
+
+    # Handle the special case where visitors contain only "adaptive" -- new
+    if args.visitors == "Adaptive":
+        # Call the new function here
+        adaptive_verification(input_file[-1], bound=args.bound)
+        exit()  # Exit to prevent calling main after adaptive verification
+
+    # Update the global verifier_timeout if the argument is provided
+    if args.verifier_timeout is not None:
+        verifier_timeout = args.verifier_timeout
 
     # Pass the arguments to main
     main(input_file[-1], mode=args.mode, bound=args.bound, iterative=args.iterative)

@@ -42,7 +42,6 @@ impl QuantifierVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        // println!("Found stmt = {:?} - {}", pair.as_rule(), pair.as_str());
 
         if pair.as_str().contains("choose|") {
             let mut found_quantifier: Option<Pair<Rule>> = None; // Declare the variable to hold the quantifier
@@ -55,7 +54,7 @@ impl QuantifierVisitor {
             while let Some(current_pair) = stack.pop() {
                 // Check if the current pair is a quantifier
                 if current_pair.as_rule() == Rule::quantifier_expr {
-                    println!("Found quantifier: {:?}", current_pair.as_str());
+                    // println!("Found quantifier: {:?}", current_pair.as_str());
                     // Handle the quantifier as needed here (e.g., break, store it, etc.)
                     found_quantifier = Some(current_pair); // Assign the found quantifier
                     break; // Exit the loop once a quantifier is found
@@ -203,11 +202,11 @@ impl QuantifierVisitor {
         pair: Pair<Rule>,
         handlers: &dyn HandlerInterface<CoreDatum>,
     ) {
-        println!(
-            "Found quantifier = {:?} - {}",
-            pair.as_rule(),
-            pair.as_str()
-        );
+        // println!(
+        //     "Found quantifier = {:?} - {}",
+        //     pair.as_rule(),
+        //     pair.as_str()
+        // );
         // common preamble
         let mut inner_pairs = pair.clone().into_inner();
 

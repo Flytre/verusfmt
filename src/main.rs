@@ -51,6 +51,10 @@ struct Args {
     /// Flag to write "failed" parsed verus code to a file ./reconstructed_output.rs
     #[arg(long = "print-failed", default_value_t = false)]
     print_failed: bool,
+    /// Flag for adaptive visitors
+    #[arg(long = "adaptive", default_value_t = false)]
+    adaptive: bool,
+
 }
 fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
     let unparsed_file = fs::read_to_string(file).into_diagnostic()?;
@@ -73,6 +77,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
 
     // Run visitors sequentially
     let mut current_output = unparsed_file.clone();
+    let mut previous_output = unparsed_file.clone();
     let mut visitor_count: HashMap<String, usize> = HashMap::new();
 
     for visitor in &args.visitors {
@@ -132,6 +137,16 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         );
         // Update current_output for the next visitor
         current_output = formatted_output; // Now this can directly use the original value
+        if args.adaptive {
+            if(current_output == previous_output){
+                println!(
+                    "Adaptive and no further changes! == {}",
+                    current_output.clone()
+                );
+            }else{
+                previous_output = current_output.clone();
+            }
+        }
     }
 
     // Handle the check and idempotency commands as before

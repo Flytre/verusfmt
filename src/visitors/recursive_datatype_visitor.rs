@@ -133,7 +133,7 @@ impl RecursiveDatatypeVisitor {
                                     "({}.view().len() == {len} ==> ({}))",
                                     field,
                                     (0..len)
-                                        .map(|i| format!("{}.view().contains({}.view()[{}])", field, field, i))
+                                        .map(|i| format!("self.view().contains({}.view()[{}])", field, i))
                                         .collect::<Vec<_>>()
                                         .join(" && ")
                                 ));

@@ -1,0 +1,17 @@
+{
+    "experiments": [
+        {
+            "name": "list",
+            "program":  "./complexEx/simpleList.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor"
+            ],
+            "args": [
+                "--mode Full",
+                "--bound 5",
+                "--verifier-timeout 1"
+            ]
+        }
+    ]
+}
