@@ -80,7 +80,7 @@ impl RecursionVisitor {
         let recursive_impl_fncs = RECURSIVE_IMPL_FNCS.lock().unwrap();
         for (_key, value) in recursive_impl_fncs.iter() {
             // println!("Key: {}, Value: {}", key, value);
-            if(!datum.fn_map.contains_key(_key)){
+            if !datum.fn_map.contains_key(_key){
                 datum.program_mut().push_str(value);
             }
         }
@@ -100,7 +100,7 @@ impl RecursionVisitor {
         let recursive_fncs = RECURSIVE_FNCS.lock().unwrap();
 
         for (_key, value) in recursive_fncs.iter() {
-            if(!datum.fn_map.contains_key(_key)){
+            if !datum.fn_map.contains_key(_key){
                 // println!("Key: {}, Value: {}", _key, value);
                 datum.program_mut().push_str(value);
             }

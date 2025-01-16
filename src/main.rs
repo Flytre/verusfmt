@@ -138,7 +138,7 @@ fn format_file(file: &PathBuf, args: &Args) -> miette::Result<()> {
         // Update current_output for the next visitor
         current_output = formatted_output; // Now this can directly use the original value
         if args.adaptive {
-            if(current_output == previous_output){
+            if current_output == previous_output{
                 println!(
                     "Adaptive and no further changes! == {}",
                     current_output.clone()
