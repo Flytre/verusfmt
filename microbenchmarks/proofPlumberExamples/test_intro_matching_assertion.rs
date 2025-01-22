@@ -9,6 +9,21 @@ verus! {
         Down(u32),
     }
 
+
+    spec fn is_good_move_orig(m: Movement) -> bool {
+        match m {
+            Movement::Up(v) => v > 100,
+            Movement::Down(v) => v > 100,
+        }
+    }
+    
+    proof fn good_move_orig(m: Movement)
+    {
+        // assert(is_good_move(m));
+        
+    }
+
+
     spec fn is_good_move(m: Movement) -> bool {
         match m {
             Movement::Up(v) => v > 108,

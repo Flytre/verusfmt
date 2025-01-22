@@ -244,10 +244,12 @@ impl RangeBoundsVisitor {
 
                     // If no requires_clause was found, add a new one if new_requires_expression is available
                     if !requires_found && new_requires_expression.is_some() {
-                        fn_qualifier_string.push_str(" requires ");
+                        let mut pre_fn_qualifier_string = String::new();
+                        pre_fn_qualifier_string.push_str(" requires ");
                         if let Some(ref new_expr) = new_requires_expression {
-                            fn_qualifier_string.push_str(new_expr);
+                            pre_fn_qualifier_string.push_str(new_expr);
                         }
+                        fn_qualifier_string = pre_fn_qualifier_string + &fn_qualifier_string;
                     }
                     // Append the constructed fn_qualifier_string to full_string
                     full_string.push_str(&fn_qualifier_string);

@@ -669,6 +669,11 @@ impl QuantifierVisitor {
         satisfying_combinations
     }
 
+    fn is_numeric_with_suffix(part: &str) -> bool {
+        let re = regex::Regex::new(r"^\d+(nat|int|float)?$").unwrap();
+        re.is_match(part)
+    }
+
     fn check_missing_variables_from_expr(
         expr: &str,
         variables: &BTreeMap<String, usize>,
@@ -682,9 +687,9 @@ impl QuantifierVisitor {
 
         for part in parts {
             // Skip operators and numeric literals
-            if operators.contains(&part) || part.parse::<usize>().is_ok() || part == "bound" {
-                continue;
-            }
+        if operators.contains(&part) || part.parse::<usize>().is_ok() || part == "bound" || Self::is_numeric_with_suffix(part) {
+            continue;
+        }
 
             // Check if `part` is a variable not found in `variables`
             if !variables.contains_key(part) {
