@@ -120,9 +120,9 @@ def handle_verus_output(output):
 
     status, file_name, line_number, assertion_code, failure_type, total_time = analyze_output(output)
     print(f"total time = {total_time}")
-    if status == "Failure" and (assertion_code == "Aborted due to previous errors with no verified results." or assertion_code == "Type Mismatch"):
-        print("Verification aborted due to previous errors. Exiting script.")
-        return status, None, None  # Return status and None for others to indicate failure
+    # if status == "Failure" and (assertion_code == "Aborted due to previous errors with no verified results." or assertion_code == "Type Mismatch"):
+    #     print("Verification aborted due to previous errors. Exiting script.")
+    #     return status, None, None  # Return status and None for others to indicate failure
 
     if status == "Success":
         print("Verification Result: Success\n")
@@ -143,12 +143,15 @@ def analyze_output(output):
     # Check for aborting due to previous errors with no verification results
     abort_pattern = re.compile(r"error: aborting due to \d+ previous error[s]*;")
     verification_results_pattern = re.compile(r"verification results:: 0 verified, 0 errors")
+    abort_pattern_one = re.compile(r"error: aborting due to \d+ previous error")
 
     if abort_pattern.search(output) and verification_results_pattern.search(output):
         return "Failure", None, None, "Aborted due to previous errors with no verified results.", None
 
-
-
+    # if abort_pattern.search(output) or abort_pattern_one.search(output):
+    #     # print("asdfasdfasdfasdfasdfasdfasdfasdf")
+    #     return "Failure", None, None, "Aborted due to previous errors with no verified results.", None
+    
     # Check for mismatched types error
     mismatched_types_pattern = re.compile(
         r"error\[E0308\]: mismatched types\s*"
@@ -185,12 +188,16 @@ def analyze_output(output):
     time_match = total_time_pattern.search(output)
     total_time = time_match.group(1) if time_match else "N/A"
 
+
     # Check for resource limit exceeded
     resource_limit_pattern = re.compile(r"Resource limit \(rlimit\) exceeded;")  # New pattern for resource limit
     if resource_limit_pattern.search(output):
         return "Failure", None, None, "Aborted due to resource limit exceeded.", "Aborted due to resource limit exceeded.", total_time
 
-
+    if abort_pattern.search(output) or abort_pattern_one.search(output):
+        # print("asdfasdfasdfasdfasdfasdfasdfasdf")
+        return "Failure", None, None, "Aborted due to previous errors with no verified results.", "Aborted due to previous errors with no verified results.",total_time
+    
     # If no specific error found, default to success
     if not any(pattern.search(output) for pattern in error_patterns.values()):
         return "Success", None, None, None, None, total_time
@@ -207,6 +214,9 @@ def analyze_output(output):
             line_number = match.group(2).strip()
             error_detail = match.group(3).strip()
             return "Failure", file_name, line_number, error_detail, error_type, total_time
+        
+
+
 
     return "Unknown", None, None, None, None, total_time
 
@@ -313,7 +323,8 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
             print("Finitization (proof) Step")
             print("--------------------\n")
 
-            run_cargo(new_file_path, assertion_code, bound=bound)
+            # run_cargo(new_file_path, assertion_code, bound=bound)
+            run_cargo(rust_file, assertion_code, bound=bound)
             run_verus_on_finitized_system(rust_file, "Proof", bound=bound)
 
 

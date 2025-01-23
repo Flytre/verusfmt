@@ -13,6 +13,8 @@ lazy_static! {
     static ref IS_VALID_VIEW_TO_SEQ: Mutex<bool> = Mutex::new(false);
     static ref ENUM_NAME: Mutex<Option<String>> = Mutex::new(None); // To store the enum name
     static ref ENUM_NAMES: Mutex<HashSet<String>> = Mutex::new(HashSet::new()); // To store all enum names
+    static ref IMPL_NAMES: Mutex<HashSet<String>> = Mutex::new(HashSet::new()); // To store all enum names
+
 
 }
 
@@ -60,6 +62,8 @@ impl RangeBoundsVisitor {
             let mut parent_name = PARENT_IMPL_NAME.lock().unwrap();
             *parent_name = Some(name.to_string());
         }
+        IMPL_NAMES.lock().unwrap().insert(name.trim().to_string()); // Add trimmed name to the set
+
         VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         {
             let mut parent_name = PARENT_IMPL_NAME.lock().unwrap();
@@ -226,8 +230,11 @@ impl RangeBoundsVisitor {
                         match qualifier_part.as_rule() {
                             Rule::requires_clause => {
                                 requires_found = true; // found a requires_clause
+                                    // Add a comma if it doesn't already end with one
                                 fn_qualifier_string.push_str(qualifier_part.as_str());
-
+                                if !fn_qualifier_string.ends_with(',') {
+                                    fn_qualifier_string.push(',');
+                                }
                                 // Append the new requires expression if it exists
                                 if let Some(ref new_expr) = new_requires_expression {
                                     fn_qualifier_string.push_str("\n");
@@ -264,7 +271,7 @@ impl RangeBoundsVisitor {
                 full_string.push_str("\n");
             }
         }
-        if let Some(function_pair) = VerusParser::str_to_function(&full_string) {
+        if let Some(function_pair) = VerusParser::str_to_proof_function(&full_string) {
             datum.program_mut().push_str(function_pair.as_str());
         } else {
             println!("Failed to parse the function.");
@@ -283,6 +290,7 @@ impl RangeBoundsVisitor {
         // List of recognized numerical types
         let numerical_types = ["int", "nat", "u32", "i32", "u64", "f32", "f64"];
         let enum_names = ENUM_NAMES.lock().unwrap(); // Access the set of enum names
+        let impl_names = IMPL_NAMES.lock().unwrap();
     
         // Regex to check if function name ends with "_n" where 'n' is a number
         let re = Regex::new(r"_([0-9]+)$").unwrap();
@@ -292,10 +300,10 @@ impl RangeBoundsVisitor {
         let mut numerical_params = Vec::new();
         let mut vector_params = Vec::new(); // Store vector type parameters
         let mut recursive_expressions = Vec::new(); // Store recursive expressions
-    
+       
         for (param, param_type) in param_map {
             // Check if the param_type matches any of the stored enum names
-            if enum_names.contains(param_type.trim_start_matches('&')) {
+            if enum_names.contains(param_type.trim_start_matches('&')) && impl_names.contains(param_type.trim_start_matches('&'))  {
                 // Use the overridden bound if available, otherwise use datum.finite_bound
                 let bound = bound_override
                     .map(|s| s.to_string())

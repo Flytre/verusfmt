@@ -1,0 +1,443 @@
+{
+    "experiments": [
+        {
+            "name": "ProofPlumber_apply_induction_on_nat1",
+            "program":  "./microbenchmarks/proofPlumberExamples/apply_induction_on_nat1.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_apply_induction_on_enum1",
+            "program":  "./microbenchmarks/proofPlumberExamples/apply_induction_on_enum1.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor"
+            ],
+            "args": [
+                "--verifier-timeout 900",
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_imply_to_if_2",
+            "program":  "./microbenchmarks/proofPlumberExamples/test_imply_to_if_2.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_imply_to_if_3",
+            "program":  "./microbenchmarks/proofPlumberExamples/test_imply_to_if_3.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_decompose_conjunct_failure",
+            "program":  "./microbenchmarks/proofPlumberExamples/decompose_conjunct_failure.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_decompose_conjunct_failure2",
+            "program":  "./microbenchmarks/proofPlumberExamples/decompose_conjunct_failure2.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_decompose_function_inline",
+            "program":  "./microbenchmarks/proofPlumberExamples/decompose_function_inline.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_assert_by",
+            "program":  "./microbenchmarks/proofPlumberExamples/test_assert_by.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_assert_by2",
+            "program":  "./microbenchmarks/proofPlumberExamples/test_assert_by2.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_intro_failing_ensures_easy",
+            "program":  "./microbenchmarks/proofPlumberExamples/intro_failing_ensures_easy.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor"
+            ],
+            "args": [
+                "--bound 51"
+            ]
+        },
+        {
+            "name": "ProofPlumber_intro_ensure_ret_arg",
+            "program":  "./microbenchmarks/proofPlumberExamples/intro_ensure_ret_arg.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor"
+            ],
+            "args": [
+                "--bound 51"
+            ]
+        },
+        {
+            "name": "ProofPlumber_intro_ensure_multiple_ret_arg",
+            "program":  "./microbenchmarks/proofPlumberExamples/intro_ensure_multiple_ret_arg.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor"
+            ],
+            "args": [
+                "--bound 51"
+            ]
+        },
+        {
+            "name": "ProofPlumber_intro_requires_mul_ineq",
+            "program":  "./microbenchmarks/proofPlumberExamples/intro_requires_mul_ineq.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_intro_forall_implies2",
+            "program":  "./microbenchmarks/proofPlumberExamples/test_intro_forall_implies2.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "RevealVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_intro_match1",
+            "program":  "./microbenchmarks/proofPlumberExamples/intro_match1.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "RevealVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_intro_match2" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/intro_match2.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "RevealVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_intro_match3" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/intro_match3.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "FunctionInlineVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "RevealVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_assert_by_reveal" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/test_assert_by_reveal.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_seq_index_inbound1" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/test_seq_index_inbound1.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_test_split_smaller_or_equal_to1" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/test_split_smaller_or_equal_to1.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_let_bind" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_let_bind.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_let_bind2" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_let_bind2.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_let_bind3" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_let_bind3.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_assertion_step" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_assertion_step.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_if_else" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_if_else.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_if_else_nested" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_if_else_nested.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_lemma_call" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_lemma_call.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_function_call" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_function_call.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "ModularFlattenerVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "ProofPlumber_wp_ifelse_fibo" ,
+            "program":  "./microbenchmarks/proofPlumberExamples/wp_ifelse_fibo.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "FunctionInlineVisitor",
+                "RevealVisitor",
+                "LambdaVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        }
+    ]
+}

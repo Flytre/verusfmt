@@ -151,6 +151,7 @@ impl RecursionVisitor {
         let mut function_name: Option<String> = None;
         let mut arguments: Option<String> = None;
         let expr_clone = pair.clone();
+        let mut nested_exprs_list = Vec::new(); // Collect nested pairs that may follow i.e. expr && nested_expr
     
         for inner_pair in expr_clone.clone().into_inner() {
             // println!("inner = {:?} -- {:?}", inner_pair.as_rule(), inner_pair.as_str());
@@ -184,7 +185,9 @@ impl RecursionVisitor {
                         .collect();
                     arguments = Some(args);
                 }
-                _ => {}
+                _ => {
+                    nested_exprs_list.push(inner_pair);
+                }
             }
         }
     
@@ -284,11 +287,16 @@ impl RecursionVisitor {
                         }
                     }
                 }
+                for inner_nested_pair in nested_exprs_list {
+                    // handle any nested exprs
+                    VerusVisitor::visit(datum, inner_nested_pair, handlers);
+                }
             } else {
                 datum.program_mut().push_str(pair.as_str());
             }
         } else {
             // Continue visiting inner pairs if no valid function call found
+            // println!("visiting inner..");
             VerusVisitor::visit_all(datum, pair.into_inner(), handlers);
         }
     }

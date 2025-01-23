@@ -81,6 +81,12 @@ impl VerusParser {
             .and_then(|mut pairs| pairs.next());
         parsed_func
     }
+    pub fn str_to_proof_function(func_str: &str) -> Option<Pair<'_, Rule>> {
+        let parsed_func = Self::parse(Rule::r#fn, func_str) // Directly using Rule::fn
+            .ok()
+            .and_then(|mut pairs| pairs.next());
+        parsed_func
+    }
     pub fn str_to_fn_qualifier(expr: &str) -> Option<Pair<'_, Rule>> {
         let parsed_expr = Self::parse(Rule::fn_qualifier, expr)
             .ok()

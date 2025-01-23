@@ -680,27 +680,56 @@ impl QuantifierVisitor {
     ) -> (bool, Vec<String>) {
         // Split the expression by whitespace
         let parts: Vec<&str> = expr.split_whitespace().collect();
-
+    
         // Operators to ignore
         let operators = ["<", "<=", ">", ">=", "==", "!=", "&&", "||"];
         let mut missing_variables = Vec::new(); // Vector to hold missing variable names
-
+    
         for part in parts {
+            // Remove standalone '(' and ')' while keeping '()' intact
+            let mut cleaned_part = String::new();
+            let chars: Vec<char> = part.chars().collect();
+            let mut skip_next = false;
+    
+            for i in 0..chars.len() {
+                if skip_next {
+                    skip_next = false;
+                    continue;
+                }
+    
+                if chars[i] == '(' {
+                    if i + 1 < chars.len() && chars[i + 1] == ')' {
+                        cleaned_part.push_str("()");
+                        skip_next = true; // Skip the next ')'
+                    }
+                } else if chars[i] != ')' {
+                    cleaned_part.push(chars[i]);
+                }
+            }
+    
+            println!("Cleaned part = {:?}", cleaned_part);
+    
             // Skip operators and numeric literals
-        if operators.contains(&part) || part.parse::<usize>().is_ok() || part == "bound" || Self::is_numeric_with_suffix(part) {
-            continue;
-        }
-
-            // Check if `part` is a variable not found in `variables`
-            if !variables.contains_key(part) {
+            if operators.contains(&cleaned_part.as_str())
+                || cleaned_part.parse::<usize>().is_ok()
+                || cleaned_part == "bound"
+                || Self::is_numeric_with_suffix(&cleaned_part)
+            {
+                continue;
+            }
+    
+            // Check if `cleaned_part` is a variable not found in `variables`
+            if !variables.contains_key(&cleaned_part) {
                 // If it's missing, add to the list of missing variables
-                missing_variables.push(part.to_string());
+                missing_variables.push(cleaned_part);
             }
         }
-
+    
         // Return a tuple: (true if no missing variables, false otherwise, and the list of missing variables)
         (missing_variables.is_empty(), missing_variables)
     }
+    
+    
 
     //currently supports expressions of the following form:
     // Constant < x < Bound

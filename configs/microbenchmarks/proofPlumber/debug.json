@@ -1,0 +1,18 @@
+{
+    "experiments": [
+        {
+            "name": "ProofPlumber_decompose_conjunct_failure2",
+            "program":  "./microbenchmarks/proofPlumberExamples/decompose_conjunct_failure2.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        }
+    ]
+}

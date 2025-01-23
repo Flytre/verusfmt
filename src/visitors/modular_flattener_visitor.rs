@@ -396,17 +396,19 @@ impl ModularFlattenerVisitor {
                         // println!("\nAfter replacement:\n{}", function_body);
     
                         if let Some(body) = Self::extract_function_body(&function_body) {
-                            datum
-                                .program_mut()
-                                .push_str(&format!("({}) ", body.as_str()));
+                            if !body.is_empty() {
+                                datum
+                                    .program_mut()
+                                    .push_str(&format!("{} ", body.as_str()));
                                 for inner_pair in non_expr_inner_and_arg_list_pairs {
                                     // println!("Recursing on rule: {:?}", inner_pair.as_rule());
                                     VerusVisitor::visit(datum, inner_pair, handlers);
                                 }
-                            return;
-                        } else {
-                            println!("Could not extract function body.");
+                                return;
+                            }
                         }
+                        
+                        println!("Could not extract function body or body is empty.");
                     }
                 }
             }
