@@ -20,9 +20,6 @@ spec fn is_prime(candidate: nat) -> bool {
 }
 
 
-
-
-
 fn main() {
 
     assert(is_prime(4));

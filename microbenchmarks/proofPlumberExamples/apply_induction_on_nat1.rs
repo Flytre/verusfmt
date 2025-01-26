@@ -24,7 +24,6 @@ proof fn sum_equal(n: nat, m: nat) by(nonlinear_arith)
 
 fn main() {}
 
-
 }
 
 // cargo run microbenchmarks/proofPlumberExamples/apply_induction_on_nat1.rs --visitors RangeBoundsVisitor,RecursionVisitor --bound 5 --print-failed

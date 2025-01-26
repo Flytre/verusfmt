@@ -5,7 +5,7 @@ use vstd::{prelude::*, seq::*};
 
 verus! {
     spec fn less_than(x: int, y: int) -> bool {
-        x < y
+        x > y
     }
 
     proof fn test_choose_succeeds2() {

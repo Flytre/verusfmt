@@ -71,6 +71,56 @@ proof fn sorted_tree_means_sorted_sequence(tree: Tree)
     // }
 }
 
+#[is_variant]
+#[derive(Eq, PartialEq, Structural)]
+enum TreeSortedness {
+    Unsorted,
+    Empty,
+    Bounded(i64, i64),
+}
+
+
+fn find_in_binary_tree(tree: &Tree, needle: i64) -> (ret: bool)
+    requires
+        tree.is_sorted(),
+    ensures
+        ret == tree@.contains(needle as int),
+    decreases tree,
+{
+    match tree {
+        Tree::Nil => false,
+        Tree::Node { left, value, right } => {
+            if needle == *value {
+                assert(tree@[left@.len() as int] != needle);  // trigger
+                true
+            } else if needle < *value {
+                let ret = find_in_binary_tree(left, needle);
+                if ret {
+                    proof {
+                        let idx = choose|idx: int| 0 <= idx < left@.len() && left@[idx] == needle;
+                        // assert(tree@[idx] == needle);  // trigger
+                    }
+                } else {
+                    proof {
+                        // sorted_tree_means_sorted_sequence(**right);
+                    }
+                }
+                ret
+            } else {
+                let ret = find_in_binary_tree(right, needle);
+                proof {
+                    if ret {
+                        let idx = choose|idx: int| 0 <= idx < right@.len() && right@[idx] == needle;
+                        // assert(tree@[left@.len() + 1 + idx] == needle);  // trigger
+                    } else {
+                        // sorted_tree_means_sorted_sequence(**left);
+                    }
+                }
+                ret
+            }
+        },
+    }
+}
 
 fn main() {
 }

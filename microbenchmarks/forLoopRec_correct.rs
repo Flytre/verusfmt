@@ -1,12 +1,6 @@
 #[allow(unused_imports)]
 use vstd::*;
 use vstd::prelude::*;
-#[allow(unused_imports)]
-use seq::*;
-use set::*;
-#[allow(unused_imports)]
-use prelude::*;
-use multiset::*;
 
 verus! {
 

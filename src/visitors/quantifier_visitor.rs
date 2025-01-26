@@ -707,7 +707,7 @@ impl QuantifierVisitor {
                 }
             }
     
-            println!("Cleaned part = {:?}", cleaned_part);
+            // println!("Cleaned part = {:?}", cleaned_part);
     
             // Skip operators and numeric literals
             if operators.contains(&cleaned_part.as_str())

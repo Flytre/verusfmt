@@ -1,0 +1,521 @@
+{
+    "experiments": [
+        {
+            "name": "primeEx_specAssertion_S",
+            "program":  "./microbenchmarks/primeEx_specAssertion_S.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor",
+                "QuantifierVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "primeEx_specAssertion_F",
+            "program":  "./microbenchmarks/primeEx_specAssertion_F.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor",
+                "QuantifierVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "indexUpTo_PC_S",
+            "program":  "./microbenchmarks/indexUpTo_PC_S.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "indexUpTo_PC_F",
+            "program":  "./microbenchmarks/indexUpTo_PC_F.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_S",
+            "program":  "./microbenchmarks/indexUpTo_Assertion_S.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_F",
+            "program":  "./microbenchmarks/indexUpTo_Assertion_F.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_S_Modular",
+            "program":  "./microbenchmarks/indexUpTo_Assertion_S_Modular.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "indexUpTo_Assertion_F_Modular",
+            "program":  "./microbenchmarks/indexUpTo_Assertion_F_Modular.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "ModularFlattenerVisitor",
+                "FunctionInlineVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "triangleRecursionEx_Assertion_S",
+            "program":  "./microbenchmarks/triangleRecursionEx_Assertion_S.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "triangleRecursionEx_Assertion_F",
+            "program":  "./microbenchmarks/triangleRecursionEx_Assertion_F.rs", 
+            "visitors": [
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RecursiveDatatypeVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor",
+                "LoopVisitor"
+            ],
+            "args": [
+                "--bound 5"
+            ]
+        },
+        {
+            "name": "forLoopRec_LI_S",
+            "program":  "./microbenchmarks/forLoopRec_LI_S.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "forLoopRec_LI_F",
+            "program":  "./microbenchmarks/forLoopRec_LI_F.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "forLoopRec_Impl_LoopBody",
+            "program":  "./microbenchmarks/forLoopRec_Impl_LoopBody.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "forLoopRec_Impl_LoopBounds",
+            "program":  "./microbenchmarks/forLoopRec_Impl_LoopBounds.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "binarySearchEx_LI_S_F",
+            "program":  "./microbenchmarks/binarySearchEx_LI_S_F.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "binarySearchEx_LI_S_S",
+            "program":  "./microbenchmarks/binarySearchEx_LI_S_S.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "binarySearchEx_Impl_LoopBody",
+            "program":  "./microbenchmarks/binarySearchEx_Impl_LoopBody.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "binarySearchEx_Impl_Bounds",
+            "program":  "./microbenchmarks/binarySearchEx_Impl_Bounds.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "chooseEx_S",
+            "program":  "./microbenchmarks/chooseEx_S.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "chooseEx_Impl",
+            "program":  "./microbenchmarks/chooseEx_Impl.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "ProofBlock_F",
+            "program":  "./microbenchmarks/ProofBlock_F.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "seq_equality",
+            "program":  "./microbenchmarks/seq_equality.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor",
+                "CollectionsVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "seq_lambda",
+            "program":  "./microbenchmarks/seq_lambda.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor",
+                "CollectionsVisitor",
+                "LambdaVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "set_subset",
+            "program":  "./microbenchmarks/set_subset.rs", 
+            "visitors": [
+                "LoopVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "ModularFlattenerVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "simpleList_S",
+            "program":  "./microbenchmarks/simpleList_S.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "simpleList_F",
+            "program":  "./microbenchmarks/simpleList_F.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "simpleList_Impl_sorted",
+            "program":  "./microbenchmarks/simpleList_Impl_sorted.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "sortedTreeSortedSeq",
+            "program":  "./microbenchmarks/sortedTreeSortedSeq.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "sortedTreeFindInBinary_S",
+            "program":  "./microbenchmarks/sortedTreeFindInBinary_S.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        },
+        {
+            "name": "sortedTreeFindInBinary_F",
+            "program":  "./microbenchmarks/sortedTreeFindInBinary_F.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        }
+        ,
+        {
+            "name": "sortedTreeFindInBinary_Impl",
+            "program":  "./microbenchmarks/sortedTreeFindInBinary_Impl.rs", 
+            "visitors": [
+                "RecursiveDatatypeVisitor",
+                "RangeBoundsVisitor",
+                "QuantifierVisitor",
+                "RecursionVisitor",
+                "RevealVisitor",
+                "CollectionsVisitor",
+                "SetSubsetVisitor"
+            ],
+            "args": [
+                "--bound 5",
+                "--verifier-timeout 60"
+            ]
+        }
+        
+    ]
+}

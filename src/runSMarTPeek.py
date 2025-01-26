@@ -188,25 +188,13 @@ def analyze_output(output):
     time_match = total_time_pattern.search(output)
     total_time = time_match.group(1) if time_match else "N/A"
 
-
-    # Check for resource limit exceeded
     resource_limit_pattern = re.compile(r"Resource limit \(rlimit\) exceeded;")  # New pattern for resource limit
-    if resource_limit_pattern.search(output):
-        return "Failure", None, None, "Aborted due to resource limit exceeded.", "Aborted due to resource limit exceeded.", total_time
 
-    if abort_pattern.search(output) or abort_pattern_one.search(output):
+    if not resource_limit_pattern.search(output) and (abort_pattern.search(output) or abort_pattern_one.search(output)):
         # print("asdfasdfasdfasdfasdfasdfasdfasdf")
         return "Failure", None, None, "Aborted due to previous errors with no verified results.", "Aborted due to previous errors with no verified results.",total_time
     
-    # If no specific error found, default to success
-    if not any(pattern.search(output) for pattern in error_patterns.values()):
-        return "Success", None, None, None, None, total_time
-
-    # Check for successful verification based on "0 errors" in the output
-    if "0 errors" in output:
-        return "Success", None, None, None, None, None
-    
-    # Check for specific errors
+     # Check for specific errors
     for error_type, pattern in error_patterns.items():
         match = pattern.search(output)
         if match:
@@ -215,7 +203,22 @@ def analyze_output(output):
             error_detail = match.group(3).strip()
             return "Failure", file_name, line_number, error_detail, error_type, total_time
         
+    if resource_limit_pattern.search(output):
+        return "Failure", None, None, "Aborted due to resource limit exceeded.", "Aborted due to resource limit exceeded.", total_time
 
+    # If no specific error found, default to success
+    if not any(pattern.search(output) for pattern in error_patterns.values()):
+        return "Success", None, None, None, None, total_time
+
+    # Check for successful verification based on "0 errors" in the output
+    if "0 errors" in output:
+        return "Success", None, None, None, None, None
+    
+   
+        
+    # Check for resource limit exceeded
+    
+   
 
 
     return "Unknown", None, None, None, None, total_time
@@ -315,7 +318,11 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
         print("Verus Check - Original File")
         print("--------------------\n")
 
+        start_time = time.time()  # Record the start time
         verus_output, verus_returncode = run_verus(rust_file)
+        end_time = time.time()  # Record the end time
+        elapsed_time_ms = (time.time() - start_time) * 1000
+        print(f"Time taken for `VERUS`: {elapsed_time_ms:.2f} ms")  # Print the elapsed time
         status, assertion_code, failure_type = handle_verus_output(verus_output)
         
         if assertion_code:
@@ -325,8 +332,12 @@ def singleFullPass(rust_file, mode='Full', bound=None, iterative=False):
 
             # run_cargo(new_file_path, assertion_code, bound=bound)
             run_cargo(rust_file, assertion_code, bound=bound)
-            run_verus_on_finitized_system(rust_file, "Proof", bound=bound)
+            start_time = time.time()  # Record the start time
 
+            run_verus_on_finitized_system(rust_file, "Proof", bound=bound)
+            end_time = time.time()  # Record the end time
+            elapsed_time_ms = (time.time() - start_time) * 1000
+            print(f"Time taken for `VERUS`: {elapsed_time_ms:.2f} ms")  # Print the elapsed time
 
 
 def iterativePass(rust_file, mode='Full', bound=None):

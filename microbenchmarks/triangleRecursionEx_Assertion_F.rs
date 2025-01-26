@@ -17,11 +17,8 @@ spec fn triangle(n: nat) -> nat
 // 
 
 fn main() {
-    // assert(triangle(0) == 0);
-    // assert(triangle(1) == 1);
-    // assert(triangle(2) == 3);
 
-    assert(triangle(5) == 15);
+    assert(triangle(5) == 21);
 }
 
 

@@ -26,7 +26,6 @@ proof fn test()
 
 fn main() {}
 
-
 }
 
 

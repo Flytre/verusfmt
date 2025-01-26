@@ -9,10 +9,6 @@ use prelude::*;
 verus! {
 
 
-// assertion fails
-// no impl to check
-// proof passes
-
 spec fn divides(factor: nat, candidate: nat) -> bool
     recommends 1 <= factor
 {
@@ -25,16 +21,16 @@ spec fn is_prime(candidate: nat) -> bool {
 }
 
 
-
-
-
-
 fn main() {
 
     assert(is_prime(3));
-
-
    
 }
 
 } // verus!
+
+
+// assertion fails
+// no impl to check
+// proof passes
+

@@ -16,10 +16,8 @@ verus! {
       }
 
     fn main(){
-      
-       
+     
     }
-
 }
 
 // cargo run microbenchmarks/proofPlumberExamples/test_intro_forall_implies2.rs --visitors RangeBoundsVisitor,QuantifierVisitor,FunctionInlineVisitor,ModularFlattenerVisitor,RecursionVisitor,RevealVisitor --bound 5 --print-failed
