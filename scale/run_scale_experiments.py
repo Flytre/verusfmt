@@ -36,10 +36,19 @@ def run_experiment(config_file, bound_value, n_trials):
         # Clean up the temporary config file
         os.remove(temp_config)
 
-    # Combine all trial results into a single DataFrame and calculate the average
+    # Combine all trial results into a single DataFrame and calculate the average and stdev
     if results:
         combined_df = pd.concat(results)
-        averaged_df = combined_df.groupby(['Name', 'Impl', 'Proof'], as_index=False).mean()
+        # Group by the necessary columns and calculate both mean and stdev
+        averaged_df = combined_df.groupby(['Name', 'Impl', 'Proof'], as_index=False).agg(
+            {'Impl Proof Time (ms)': ['mean', 'std'],
+             'Proof Proof Time (ms)': ['mean', 'std'],
+             'Impl Finitize (ms)': ['mean', 'std'],
+             'Proof Finitize (ms)': ['mean', 'std']}
+        )
+        
+        # Flatten multi-level column headers
+        averaged_df.columns = ['_'.join(col).strip() for col in averaged_df.columns.values]
         
         # Save the averaged result to a final CSV
         averaged_file = f'./experiment_logs/experiment_summary_{bound_value}_avg.csv'
@@ -47,30 +56,6 @@ def run_experiment(config_file, bound_value, n_trials):
 
         return averaged_file
     return None
-
-def generate_gnuplot_script(data_file, output_image):
-    gnuplot_file = './experiment_logs/plot.gnuplot'
-    script_content = f"""
-set terminal pngcairo size 800,600 enhanced font 'Verdana,10'
-set output '{output_image}'
-set title 'Experiment Results'
-set xlabel 'Bound'
-set ylabel 'Time (ms)'
-set grid
-set key outside
-plot \\
-    '{data_file}' using 8:4 with linespoints title 'Impl Proof Time (ms)', \\
-    '{data_file}' using 8:5 with linespoints title 'Proof Proof Time (ms)', \\
-    '{data_file}' using 8:6 with linespoints title 'Impl Finitize (ms)', \\
-    '{data_file}' using 8:7 with linespoints title 'Proof Finitize (ms)'
-    """
-
-    # Write the gnuplot script to a file
-    with open(gnuplot_file, 'w') as f:
-        f.write(script_content)
-
-    return gnuplot_file
-
 
 
 def main():
@@ -100,12 +85,6 @@ def main():
         final_df = pd.concat(all_results)
         final_csv = './experiment_logs/experiment_summary_n.csv'
         final_df.to_csv(final_csv, index=False)
-
-        # Generate the gnuplot script and run it
-        # output_image = './experiment_logs/experiment_plot.png'
-        # gnuplot_file = generate_gnuplot_script(final_csv, output_image)
-        # subprocess.run(['gnuplot', gnuplot_file])
-        # print(f"Plot generated: {output_image}")
 
 if __name__ == "__main__":
     main()
